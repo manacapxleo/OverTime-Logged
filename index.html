@@ -710,6 +710,7 @@
   function renderRoster() {
     const container = document.getElementById('rosterContainer');
     const y = current.getFullYear(), m = current.getMonth();
+    document.getElementById('monthLabel').textContent = `${MONTHS[m]} ${y}`;
     const daysInMonth = new Date(y, m + 1, 0).getDate();
 
     let html = '';
