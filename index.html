@@ -270,25 +270,6 @@
 
   function renderRoster(){
     const container=document.getElementById('rosterContainer');const y=current.getFullYear(),m=current.getMonth();const daysInMonth=new Date(y,m+1,0).getDate();
-    // Handle Previous Month Click
-  document.getElementById('prevBtn').addEventListener('click', async () => {
-    // Decrease the month by 1
-    current.setMonth(current.getMonth() - 1);
-    
-    // Load the new month's schedule roster and update the UI
-    await loadRoster(current.getFullYear(), current.getMonth());
-    updateActiveTabUI();
-  });
-
-  // Handle Next Month Click
-  document.getElementById('nextBtn').addEventListener('click', async () => {
-    // Increase the month by 1
-    current.setMonth(current.getMonth() + 1);
-    
-    // Load the new month's schedule roster and update the UI
-    await loadRoster(current.getFullYear(), current.getMonth());
-    updateActiveTabUI();
-  });
     if(!currentRoster){container.innerHTML='<div class="panel"><p style="color:var(--ink-soft);">No schedule for this month. Use Admin tab to upload.</p></div>';return;}
     let html='';
     for(const[dept,employees]of Object.entries(currentRoster)){
