@@ -201,7 +201,7 @@
 (function(){
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-
+  const ADMIN_PASSWORD = "leeyoo";
   const firebaseConfig={
     apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
     authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
@@ -266,6 +266,25 @@
   const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab');
   tabBtns.forEach(btn=>{btn.addEventListener('click',()=>{tabBtns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');const tab=btn.dataset.tab;rosterTab.classList.toggle('hidden',tab!=='roster');calendarTab.classList.toggle('hidden',tab!=='calendar');adminTab.classList.toggle('hidden',tab!=='admin');if(tab==='roster')renderRoster();if(tab==='calendar'){renderCalendar();renderPanel();}if(tab==='admin')renderManualEditor();});});
 
+  // PASSWORD PROTECTION GATE FOR ADMIN TAB
+      if(tab==='admin') {
+        const passwordCheck = prompt("Enter Admin Password to continue:");
+        if (passwordCheck !== ADMIN_PASSWORD) {
+          alert("Access Denied: Incorrect Password.");
+          return; // Halts configuration and prevents switching tabs
+        }
+      }
+
+      tabBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      rosterTab.classList.toggle('hidden',tab!=='roster');
+      calendarTab.classList.toggle('hidden',tab!=='calendar');
+      adminTab.classList.toggle('hidden',tab!=='admin');
+      if(tab==='roster') renderRoster();
+      if(tab==='calendar'){renderCalendar();renderPanel();}
+      if(tab==='admin') renderManualEditor();
+    });
+  });
   function getShiftClass(shift){if(shift==='1')return'shift-1';if(shift==='2')return'shift-2';if(shift==='3')return'shift-3';if(shift==='RD')return'shift-rd';return'';}
 
   function renderRoster(){
