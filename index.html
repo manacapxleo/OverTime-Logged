@@ -284,7 +284,7 @@
 
   const SHIFTS={first:{label:'First shift',start:'00:00',end:'08:00',hours:8},second:{label:'Second shift',start:'08:00',end:'16:00',hours:8},third:{label:'Third shift',start:'16:00',end:'00:00',hours:8}};
 
-  function getAllEmployees(){const emps=[];if(currentRoster){for(const[dept,employees]of Object.entries(currentRoster)){employees.forEach(e=>emps.push({name:e.name,dept}));}}return emps;}
+  function getAllEmployees(){const emps=[];if(currentRoster){for(const[dept,employees]of Object.entries(currentRoster)){employees.forEach(e=>emps.push({name:e.name}));}}return emps;}
 
   function renderPanel(){
     const addForm=document.getElementById('addForm'),panelDate=document.getElementById('panelDate'),panelTotal=document.getElementById('panelTotal'),entriesList=document.getElementById('entriesList'),empSelect=document.getElementById('empSelect');
