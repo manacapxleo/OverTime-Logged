@@ -594,7 +594,7 @@
     ]
   };
 
-  for (const [dept, emps] of Object.entries(ROSTER)) {
+  for (const [emps] of Object.entries(ROSTER)) {
     emps.forEach(e => ALL_EMPLOYEES.push({name: e.name}));
   }
 
