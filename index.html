@@ -263,10 +263,13 @@
 
   function dayTotal(key){const list=data[key]||[];return Math.round(list.reduce((sum,e)=>sum+e.hours,0)*100)/100;}
 
-  const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab');
-  tabBtns.forEach(btn=>{btn.addEventListener('click',()=>{tabBtns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');const tab=btn.dataset.tab;rosterTab.classList.toggle('hidden',tab!=='roster');calendarTab.classList.toggle('hidden',tab!=='calendar');adminTab.classList.toggle('hidden',tab!=='admin');if(tab==='roster')renderRoster();if(tab==='calendar'){renderCalendar();renderPanel();}if(tab==='admin')renderManualEditor();});});
-
-  // PASSWORD PROTECTION GATE FOR ADMIN TAB
+ const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab');
+  
+  tabBtns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const tab=btn.dataset.tab;
+      
+      // PASSWORD PROTECTION GATE FOR ADMIN TAB
       if(tab==='admin') {
         const passwordCheck = prompt("Enter Admin Password to continue:");
         if (passwordCheck !== ADMIN_PASSWORD) {
