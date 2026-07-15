@@ -869,7 +869,7 @@
     }
 
     empSelect.innerHTML = ALL_EMPLOYEES.map(e =>
-      `<button type="button" class="emp-chip${selectedEmployee === e.name ? ' active' : ''}" data-name="${e.name}">${e.name} <span style="opacity:0.6;font-size:10px;">${e.dept}</span></button>`
+      `<button type="button" class="emp-chip${selectedEmployee === e.name ? ' active' : ''}" data-name="${e.name}">${e.name} <span style="opacity:0.6;font-size:10px;"></span></button>`
     ).join('');
     empSelect.querySelectorAll('.emp-chip').forEach(chip => {
       chip.addEventListener('click', () => {
