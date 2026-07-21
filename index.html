@@ -163,7 +163,7 @@
     </div>
   </div>
 
-  <!-- TAB BAR WITH LOG IN BUTTON NEXT TO ADMIN -->
+  <!-- TAB BAR -->
   <div class="tab-bar" style="display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; gap: 4px;">
       <button class="tab-btn active" data-tab="roster">Shift Roster</button>
@@ -171,10 +171,11 @@
       <button class="tab-btn" data-tab="admin">Admin / Upload</button>
     </div>
     
-    <!-- Log In / User Control on the right side of the tab bar -->
+    <!-- Auth Status / Log In Button -->
     <div style="display: flex; align-items: center; gap: 8px;">
-      <button id="loginBtn" class="tab-btn" style="background-color: #007bff; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log In</button>
-      <span id="userInfo" style="display: none; font-size: 14px; font-weight: bold;"></span>
+      <span id="userBadge" style="display: none; font-size: 13px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #e2e8f0; color: #334155;"></span>
+      <button id="loginBtn" class="tab-btn" style="background-color: #007bff; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log In / Register</button>
+      <button id="logoutBtn" class="tab-btn" style="display: none; background-color: #dc3545; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log Out</button>
     </div>
   </div>
 
@@ -204,25 +205,55 @@
     <div class="panel" id="panel">
       <div class="panel-head"><h2 id="panelDate">Select a date</h2><div class="tot" id="panelTotal"></div></div>
       <div class="entries" id="entriesList"></div>
+
+      <!-- Overtime Add Form (Locked until account is approved) -->
       <div class="add-form" id="addForm" style="display:none;">
-        <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
-        <div class="field" style="flex:1 1 100%;">
-          <label>Shift</label>
-          <div class="shift-group" id="shiftGroup">
-            <button type="button" class="shift-btn" data-shift="first">First shift<span class="shift-time">12:00 AM - 8:00 AM</span></button>
-            <button type="button" class="shift-btn" data-shift="second">Second shift<span class="shift-time">8:00 AM - 4:00 PM</span></button>
-            <button type="button" class="shift-btn" data-shift="third">Third shift<span class="shift-time">4:00 PM - 12:00 AM</span></button>
-          </div>
+        <div id="otPermissionNotice" style="display:none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px;">
+          🔒 <strong>Permission Required:</strong> You need an approved editor account to log overtime entries.
         </div>
-        <div class="field note"><label for="noteInput">Note (optional)</label><input type="text" id="noteInput" placeholder="e.g. Month-end closing"></div>
-        <button class="add-btn" id="addBtn">Add entry</button>
-        <div class="form-msg" id="formMsg"></div>
+        <div id="otFormFields">
+          <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
+          <div class="field" style="flex:1 1 100%;">
+            <label>Shift</label>
+            <div class="shift-group" id="shiftGroup">
+              <button type="button" class="shift-btn" data-shift="first">First shift<span class="shift-time">12:00 AM - 8:00 AM</span></button>
+              <button type="button" class="shift-btn" data-shift="second">Second shift<span class="shift-time">8:00 AM - 4:00 PM</span></button>
+              <button type="button" class="shift-btn" data-shift="third">Third shift<span class="shift-time">4:00 PM - 12:00 AM</span></button>
+            </div>
+          </div>
+          <div class="field note"><label for="noteInput">Note (optional)</label><input type="text" id="noteInput" placeholder="e.g. Month-end closing"></div>
+          <button class="add-btn" id="addBtn">Add entry</button>
+          <div class="form-msg" id="formMsg"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="adminTab" class="hidden">
     <div class="admin-grid">
+      
+      <!-- NEW: ACCOUNT APPROVAL MANAGEMENT PANEL -->
+      <div class="admin-card" style="grid-column:1/-1; background: #f8fafc; border: 1px solid #cbd5e1;">
+        <h3>User Account Approvals & Permissions</h3>
+        <p>Manage user registration requests. Only users marked as <strong>Approved Editor</strong> can submit entries on the Overtime Calendar.</p>
+        
+        <div style="overflow-x: auto; margin-top: 12px;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+            <thead>
+              <tr style="border-bottom: 2px solid #cbd5e1; background: #e2e8f0;">
+                <th style="padding: 8px;">Name / Email</th>
+                <th style="padding: 8px;">Role</th>
+                <th style="padding: 8px;">Status</th>
+                <th style="padding: 8px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="userAccountsTableBody">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>CSV / Excel Paste Upload</h3>
         <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong> (one row per employee, shifts separated by commas). Use <code>RD</code> for Rest Day. First column = Department, Second = Name, rest = shifts for days 1-31.</p>
@@ -239,6 +270,7 @@
         </div>
         <div class="form-msg" id="csvMsg"></div>
       </div>
+      
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>Manual Schedule Editor</h3>
         <p>Edit shifts directly in the table below. Click a cell and type <code>1</code>, <code>2</code>, <code>3</code>, or <code>RD</code>. Use the month selector above.</p>
@@ -249,6 +281,7 @@
         </div>
         <div class="form-msg" id="manualMsg"></div>
       </div>
+      
       <div class="admin-card">
         <h3>How It Works</h3>
         <p><strong>Priority:</strong> Firebase cloud data &rarr; Local browser data &rarr; Hardcoded fallback</p>
@@ -265,11 +298,18 @@
   </div>
 </div>
 
-<!-- Login Modal Popup -->
+<!-- MULTI-TAB LOGIN & REGISTER MODAL -->
 <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
-  <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 320px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
+  <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 340px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
     <span id="closeLoginModal" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
-    <h2 style="margin-top: 0; font-size: 20px;">Sign In</h2>
+    
+    <!-- Switch between Login / Register -->
+    <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+      <button id="showLoginFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Log In</button>
+      <button id="showRegisterFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; color: #64748b;">Register</button>
+    </div>
+
+    <!-- Login Form -->
     <form id="loginForm">
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
         <label for="loginEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
@@ -279,11 +319,29 @@
         <label for="loginPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
         <input type="password" id="loginPassword" required placeholder="••••••••" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
       </div>
-      <button type="submit" style="width: 100%; background-color: #007bff; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Log In</button>
+      <button type="submit" style="width: 100%; background-color: #007bff; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Sign In</button>
     </form>
+
+    <!-- Register Form -->
+    <form id="registerForm" style="display: none;">
+      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
+        <label for="regName" style="font-size: 14px; margin-bottom: 4px;">Full Name</label>
+        <input type="text" id="regName" required placeholder="John Doe" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      </div>
+      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
+        <label for="regEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
+        <input type="email" id="regEmail" required placeholder="user@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      </div>
+      <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
+        <label for="regPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
+        <input type="password" id="regPassword" required placeholder="••••••••" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      </div>
+      <button type="submit" style="width: 100%; background-color: #28a745; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Create Account</button>
+    </form>
+
+    <div id="authMsg" style="margin-top: 10px; font-size: 13px; text-align: center;"></div>
   </div>
 </div>
-
 <script>
 (function(){
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -411,49 +469,193 @@
   }
 
   function escapeHtml(s){const div=document.createElement('div');div.textContent=s;return div.innerHTML;}
-// Modal Control Elements
-const loginBtn = document.getElementById('loginBtn');
-const loginModal = document.getElementById('loginModal');
-const closeLoginModal = document.getElementById('closeLoginModal');
-const loginForm = document.getElementById('loginForm');
-const userInfo = document.getElementById('userInfo');
+// Local Account Store & Current Session State
+let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
+  { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' }
+];
+let currentUser = JSON.parse(localStorage.getItem('apo_current_user')) || null;
 
-// Open Modal when Log In button clicked
-loginBtn.addEventListener('click', () => {
-  loginModal.style.display = 'flex';
+// Save Accounts to Storage
+function saveAccounts() {
+  localStorage.setItem('apo_accounts', JSON.stringify(accounts));
+}
+
+// Modal DOM Elements
+const loginModal = document.getElementById('loginModal'),
+      loginBtn = document.getElementById('loginBtn'),
+      logoutBtn = document.getElementById('logoutBtn'),
+      closeLoginModal = document.getElementById('closeLoginModal'),
+      showLoginFormBtn = document.getElementById('showLoginFormBtn'),
+      showRegisterFormBtn = document.getElementById('showRegisterFormBtn'),
+      loginForm = document.getElementById('loginForm'),
+      registerForm = document.getElementById('registerForm'),
+      authMsg = document.getElementById('authMsg'),
+      userBadge = document.getElementById('userBadge');
+
+// Modal Toggles
+loginBtn.addEventListener('click', () => { loginModal.style.display = 'flex'; });
+closeLoginModal.addEventListener('click', () => { loginModal.style.display = 'none'; });
+
+showLoginFormBtn.addEventListener('click', () => {
+  loginForm.style.display = 'block';
+  registerForm.style.display = 'none';
+  showLoginFormBtn.style.color = '#007bff'; showLoginFormBtn.style.borderBottom = '2px solid #007bff';
+  showRegisterFormBtn.style.color = '#64748b'; showRegisterFormBtn.style.borderBottom = 'none';
+  authMsg.textContent = '';
 });
 
-// Close Modal when 'X' is clicked
-closeLoginModal.addEventListener('click', () => {
-  loginModal.style.display = 'none';
+showRegisterFormBtn.addEventListener('click', () => {
+  loginForm.style.display = 'none';
+  registerForm.style.display = 'block';
+  showRegisterFormBtn.style.color = '#28a745'; showRegisterFormBtn.style.borderBottom = '2px solid #28a745';
+  showLoginFormBtn.style.color = '#64748b'; showLoginFormBtn.style.borderBottom = 'none';
+  authMsg.textContent = '';
 });
 
-// Close Modal when clicking outside the box
-window.addEventListener('click', (event) => {
-  if (event.target === loginModal) {
-    loginModal.style.display = 'none';
+// Handle Account Registration
+registerForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
+
+  if (accounts.some(acc => acc.email === email)) {
+    authMsg.style.color = '#dc3545';
+    authMsg.textContent = 'Account with this email already exists.';
+    return;
   }
+
+  accounts.push({ name, email, password, role: 'editor', status: 'pending' });
+  saveAccounts();
+
+  authMsg.style.color = '#28a745';
+  authMsg.textContent = 'Registration successful! Wait for Admin approval.';
+  registerForm.reset();
+  renderAdminAccountTable();
 });
 
-// Handle Login Form Submission
+// Handle Login
 loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value;
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
 
-  // Placeholder login check (Replace with Firebase Auth when ready)
-  if (email && password) {
-    alert(`Successfully logged in as ${email}`);
-    
-    // Update UI state
-    loginBtn.style.display = 'none';
-    userInfo.textContent = email;
-    userInfo.style.display = 'inline-block';
-    loginModal.style.display = 'none';
-    
-    loginForm.reset();
+  const user = accounts.find(acc => acc.email === email && acc.password === password);
+
+  if (!user) {
+    authMsg.style.color = '#dc3545';
+    authMsg.textContent = 'Invalid email or password.';
+    return;
   }
+
+  currentUser = user;
+  localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+  updateAuthUI();
+  loginModal.style.display = 'none';
+  loginForm.reset();
 });
+
+// Handle Logout
+logoutBtn.addEventListener('click', () => {
+  currentUser = null;
+  localStorage.removeItem('apo_current_user');
+  updateAuthUI();
+});
+
+// Update UI Permissions Across App
+function updateAuthUI() {
+  const otPermissionNotice = document.getElementById('otPermissionNotice');
+  const otFormFields = document.getElementById('otFormFields');
+
+  if (currentUser) {
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+    userBadge.style.display = 'inline-block';
+    userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
+
+    // Check if user is approved to edit overtime
+    if (currentUser.role === 'admin' || currentUser.status === 'approved') {
+      otPermissionNotice.style.display = 'none';
+      otFormFields.style.opacity = '1';
+      otFormFields.style.pointerEvents = 'auto';
+    } else {
+      otPermissionNotice.style.display = 'block';
+      otPermissionNotice.innerHTML = '⌛ <strong>Approval Pending:</strong> Your account is registered, but requires Admin approval before you can edit overtime.';
+      otFormFields.style.opacity = '0.4';
+      otFormFields.style.pointerEvents = 'none';
+    }
+  } else {
+    loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+    userBadge.style.display = 'none';
+    
+    // Lock overtime form for unauthenticated users
+    otPermissionNotice.style.display = 'block';
+    otPermissionNotice.innerHTML = '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
+    otFormFields.style.opacity = '0.4';
+    otFormFields.style.pointerEvents = 'none';
+  }
+}
+
+// Render Account Management Table inside Admin Tab
+function renderAdminAccountTable() {
+  const tbody = document.getElementById('userAccountsTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  accounts.forEach((acc, index) => {
+    if (acc.role === 'admin') return; // Skip main admin row
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #e2e8f0';
+
+    const statusBadge = acc.status === 'approved' 
+      ? '<span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;">Approved</span>'
+      : '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:12px;">Pending</span>';
+
+    tr.innerHTML = `
+      <td style="padding:8px;"><strong>${acc.name}</strong><br><small style="color:#64748b;">${acc.email}</small></td>
+      <td style="padding:8px;">Editor</td>
+      <td style="padding:8px;">${statusBadge}</td>
+      <td style="padding:8px;">
+        ${acc.status === 'pending' 
+          ? `<button onclick="approveUser(${index})" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Approve</button>` 
+          : `<button onclick="rejectUser(${index})" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Revoke</button>`
+        }
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Admin Action: Approve User
+window.approveUser = function(index) {
+  accounts[index].status = 'approved';
+  saveAccounts();
+  renderAdminAccountTable();
+  if (currentUser && currentUser.email === accounts[index].email) {
+    currentUser.status = 'approved';
+    localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+    updateAuthUI();
+  }
+};
+
+// Admin Action: Revoke User Access
+window.rejectUser = function(index) {
+  accounts[index].status = 'pending';
+  saveAccounts();
+  renderAdminAccountTable();
+  if (currentUser && currentUser.email === accounts[index].email) {
+    currentUser.status = 'pending';
+    localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+    updateAuthUI();
+  }
+};
+
+// Initial state boot
+updateAuthUI();
+renderAdminAccountTable();
   document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();const msg=document.getElementById('formMsg');if(!selectedEmployee){msg.textContent='Select an employee first.';return;}if(!selectedShift){msg.textContent='Choose a shift first.';return;}const shift=SHIFTS[selectedShift];if(!data[selectedDate])data[selectedDate]=[];const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
 
   document.getElementById('prevBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()-1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
