@@ -96,6 +96,60 @@
   .source-badge.hardcoded{background:var(--blue-tint);color:var(--blue);}.source-badge.none{background:var(--red-tint);color:var(--red);}
   .hidden{display:none !important;}
   @media(max-width:560px){.day-cell{min-height:58px;padding:4px;}.num{font-size:11px;width:18px;height:18px;}.tally{font-size:9.5px;padding:1px 4px;}.masthead h1{font-size:22px;}.field.note input{width:140px;}.tab-btn{padding:8px 10px;font-size:12px;}.admin-grid{grid-template-columns:1fr;}}
+/* Align buttons horizontally */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Basic Modal Styling */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 320px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.form-group input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
 </style>
 </head>
 <body>
@@ -195,6 +249,31 @@
         <p>You can also use tab-separated values - just paste from Excel and it will work.</p>
       </div>
     </div>
+    <!-- Inside your navbar / button header where Admin sits -->
+<div class="nav-controls">
+  <button id="adminBtn" class="btn">Admin</button>
+  <button id="loginBtn" class="btn btn-primary">Log In</button>
+  <span id="userInfo" style="display: none;"></span> <!-- Displays logged in user -->
+</div>
+
+<!-- Login Modal (Add near the bottom of index.html before </body>) -->
+<div id="loginModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span id="closeLoginModal" class="close-btn">&times;</span>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" required placeholder="user@apopackhouse.com">
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-submit">Log In</button>
+    </form>
+  </div>
+</div>
   </div>
 </div>
 <script>
@@ -263,7 +342,7 @@
 
   function dayTotal(key){const list=data[key]||[];return Math.round(list.reduce((sum,e)=>sum+e.hours,0)*100)/100;}
 
- const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab');
+ const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab'),loginTab=document.getElementById('loginTab');;
   
   tabBtns.forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -324,7 +403,49 @@
   }
 
   function escapeHtml(s){const div=document.createElement('div');div.textContent=s;return div.innerHTML;}
+// Modal Control Elements
+const loginBtn = document.getElementById('loginBtn');
+const loginModal = document.getElementById('loginModal');
+const closeLoginModal = document.getElementById('closeLoginModal');
+const loginForm = document.getElementById('loginForm');
+const userInfo = document.getElementById('userInfo');
 
+// Open Modal when Log In button clicked
+loginBtn.addEventListener('click', () => {
+  loginModal.style.display = 'flex';
+});
+
+// Close Modal when 'X' is clicked
+closeLoginModal.addEventListener('click', () => {
+  loginModal.style.display = 'none';
+});
+
+// Close Modal when clicking outside the box
+window.addEventListener('click', (event) => {
+  if (event.target === loginModal) {
+    loginModal.style.display = 'none';
+  }
+});
+
+// Handle Login Form Submission
+loginForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Placeholder login check (Replace with Firebase Auth when ready)
+  if (email && password) {
+    alert(`Successfully logged in as ${email}`);
+    
+    // Update UI state
+    loginBtn.style.display = 'none';
+    userInfo.textContent = email;
+    userInfo.style.display = 'inline-block';
+    loginModal.style.display = 'none';
+    
+    loginForm.reset();
+  }
+});
   document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();const msg=document.getElementById('formMsg');if(!selectedEmployee){msg.textContent='Select an employee first.';return;}if(!selectedShift){msg.textContent='Choose a shift first.';return;}const shift=SHIFTS[selectedShift];if(!data[selectedDate])data[selectedDate]=[];const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
 
   document.getElementById('prevBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()-1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
