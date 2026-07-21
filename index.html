@@ -232,7 +232,7 @@
   <div id="adminTab" class="hidden">
     <div class="admin-grid">
       
-      <!-- NEW: ACCOUNT APPROVAL MANAGEMENT PANEL -->
+      <!-- ACCOUNT APPROVAL MANAGEMENT PANEL -->
       <div class="admin-card" style="grid-column:1/-1; background: #f8fafc; border: 1px solid #cbd5e1;">
         <h3>User Account Approvals & Permissions</h3>
         <p>Manage user registration requests. Only users marked as <strong>Approved Editor</strong> can submit entries on the Overtime Calendar.</p>
@@ -241,7 +241,7 @@
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
             <thead>
               <tr style="border-bottom: 2px solid #cbd5e1; background: #e2e8f0;">
-                <th style="padding: 8px;">Name / Email</th>
+                <th style="padding: 8px;">Username</th>
                 <th style="padding: 8px;">Role</th>
                 <th style="padding: 8px;">Status</th>
                 <th style="padding: 8px;">Action</th>
@@ -298,7 +298,7 @@
   </div>
 </div>
 
-<!-- MULTI-TAB LOGIN & REGISTER MODAL -->
+<!-- MULTI-TAB LOGIN & REGISTER MODAL (USERNAME-BASED) -->
 <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
   <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 340px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
     <span id="closeLoginModal" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
@@ -312,8 +312,8 @@
     <!-- Login Form -->
     <form id="loginForm">
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
-        <label for="loginEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
-        <input type="email" id="loginEmail" required placeholder="user@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <label for="loginUsername" style="font-size: 14px; margin-bottom: 4px;">Username</label>
+        <input type="text" id="loginUsername" required placeholder="Enter username" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
       </div>
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
         <label for="loginPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
@@ -325,12 +325,8 @@
     <!-- Register Form -->
     <form id="registerForm" style="display: none;">
       <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
-        <label for="regName" style="font-size: 14px; margin-bottom: 4px;">Full Name</label>
-        <input type="text" id="regName" required placeholder="John Doe" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
-        <label for="regEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
-        <input type="email" id="regEmail" required placeholder="user@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <label for="regUsername" style="font-size: 14px; margin-bottom: 4px;">Username</label>
+        <input type="text" id="regUsername" required placeholder="Choose a username" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
       </div>
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
         <label for="regPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
@@ -469,9 +465,11 @@
   }
 
   function escapeHtml(s){const div=document.createElement('div');div.textContent=s;return div.innerHTML;}
-// Local Account Store & Current Session State
+
+  
+// Local Account Store & Current Session State (Default Admin: username 'admin', password 'leeyoo')
 let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
-  { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' }
+  { username: 'admin', password: 'leeyoo', role: 'admin', status: 'approved' }
 ];
 let currentUser = JSON.parse(localStorage.getItem('apo_current_user')) || null;
 
@@ -512,39 +510,38 @@ showRegisterFormBtn.addEventListener('click', () => {
   authMsg.textContent = '';
 });
 
-// Handle Account Registration
+// Handle Account Registration (Username)
 registerForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value;
 
-  if (accounts.some(acc => acc.email === email)) {
+  if (accounts.some(acc => acc.username.toLowerCase() === username.toLowerCase())) {
     authMsg.style.color = '#dc3545';
-    authMsg.textContent = 'Account with this email already exists.';
+    authMsg.textContent = 'Username is already taken.';
     return;
   }
 
-  accounts.push({ name, email, password, role: 'editor', status: 'pending' });
+  accounts.push({ username, password, role: 'editor', status: 'pending' });
   saveAccounts();
 
   authMsg.style.color = '#28a745';
-  authMsg.textContent = 'Registration successful! Wait for Admin approval.';
+  authMsg.textContent = 'Account created! Wait for Admin approval.';
   registerForm.reset();
   renderAdminAccountTable();
 });
 
-// Handle Login
+// Handle Login (Username)
 loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
 
-  const user = accounts.find(acc => acc.email === email && acc.password === password);
+  const user = accounts.find(acc => acc.username.toLowerCase() === username.toLowerCase() && acc.password === password);
 
   if (!user) {
     authMsg.style.color = '#dc3545';
-    authMsg.textContent = 'Invalid email or password.';
+    authMsg.textContent = 'Invalid username or password.';
     return;
   }
 
@@ -571,7 +568,7 @@ function updateAuthUI() {
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
     userBadge.style.display = 'inline-block';
-    userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
+    userBadge.textContent = `${currentUser.username} (${currentUser.status.toUpperCase()})`;
 
     // Check if user is approved to edit overtime
     if (currentUser.role === 'admin' || currentUser.status === 'approved') {
@@ -615,7 +612,7 @@ function renderAdminAccountTable() {
       : '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:12px;">Pending</span>';
 
     tr.innerHTML = `
-      <td style="padding:8px;"><strong>${acc.name}</strong><br><small style="color:#64748b;">${acc.email}</small></td>
+      <td style="padding:8px;"><strong>${acc.username}</strong></td>
       <td style="padding:8px;">Editor</td>
       <td style="padding:8px;">${statusBadge}</td>
       <td style="padding:8px;">
@@ -634,7 +631,7 @@ window.approveUser = function(index) {
   accounts[index].status = 'approved';
   saveAccounts();
   renderAdminAccountTable();
-  if (currentUser && currentUser.email === accounts[index].email) {
+  if (currentUser && currentUser.username === accounts[index].username) {
     currentUser.status = 'approved';
     localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
     updateAuthUI();
@@ -646,7 +643,7 @@ window.rejectUser = function(index) {
   accounts[index].status = 'pending';
   saveAccounts();
   renderAdminAccountTable();
-  if (currentUser && currentUser.email === accounts[index].email) {
+  if (currentUser && currentUser.username === accounts[index].username) {
     currentUser.status = 'pending';
     localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
     updateAuthUI();
@@ -656,8 +653,10 @@ window.rejectUser = function(index) {
 // Initial state boot
 updateAuthUI();
 renderAdminAccountTable();
-  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();const msg=document.getElementById('formMsg');if(!selectedEmployee){msg.textContent='Select an employee first.';return;}if(!selectedShift){msg.textContent='Choose a shift first.';return;}const shift=SHIFTS[selectedShift];if(!data[selectedDate])data[selectedDate]=[];const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
 
+
+  
+  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();const msg=document.getElementById('formMsg');if(!selectedEmployee){msg.textContent='Select an employee first.';return;}if(!selectedShift){msg.textContent='Choose a shift first.';return;}const shift=SHIFTS[selectedShift];if(!data[selectedDate])data[selectedDate]=[];const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
   document.getElementById('prevBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()-1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
   document.getElementById('nextBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()+1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
 
