@@ -163,7 +163,7 @@
     </div>
   </div>
 
-  <!-- TAB BAR -->
+  <!-- TAB BAR WITH LOG IN BUTTON NEXT TO ADMIN -->
   <div class="tab-bar" style="display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; gap: 4px;">
       <button class="tab-btn active" data-tab="roster">Shift Roster</button>
@@ -171,11 +171,10 @@
       <button class="tab-btn" data-tab="admin">Admin / Upload</button>
     </div>
     
-    <!-- Auth Status / Log In Button -->
+    <!-- Log In / User Control on the right side of the tab bar -->
     <div style="display: flex; align-items: center; gap: 8px;">
-      <span id="userBadge" style="display: none; font-size: 13px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #e2e8f0; color: #334155;"></span>
-      <button id="loginBtn" class="tab-btn" style="background-color: #007bff; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log In / Register</button>
-      <button id="logoutBtn" class="tab-btn" style="display: none; background-color: #dc3545; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log Out</button>
+      <button id="loginBtn" class="tab-btn" style="background-color: #007bff; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log In</button>
+      <span id="userInfo" style="display: none; font-size: 14px; font-weight: bold;"></span>
     </div>
   </div>
 
@@ -205,55 +204,25 @@
     <div class="panel" id="panel">
       <div class="panel-head"><h2 id="panelDate">Select a date</h2><div class="tot" id="panelTotal"></div></div>
       <div class="entries" id="entriesList"></div>
-
-      <!-- Overtime Add Form (Locked until account is approved) -->
       <div class="add-form" id="addForm" style="display:none;">
-        <div id="otPermissionNotice" style="display:none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px;">
-          🔒 <strong>Permission Required:</strong> You need an approved editor account to log overtime entries.
-        </div>
-        <div id="otFormFields">
-          <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
-          <div class="field" style="flex:1 1 100%;">
-            <label>Shift</label>
-            <div class="shift-group" id="shiftGroup">
-              <button type="button" class="shift-btn" data-shift="first">First shift<span class="shift-time">12:00 AM - 8:00 AM</span></button>
-              <button type="button" class="shift-btn" data-shift="second">Second shift<span class="shift-time">8:00 AM - 4:00 PM</span></button>
-              <button type="button" class="shift-btn" data-shift="third">Third shift<span class="shift-time">4:00 PM - 12:00 AM</span></button>
-            </div>
+        <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
+        <div class="field" style="flex:1 1 100%;">
+          <label>Shift</label>
+          <div class="shift-group" id="shiftGroup">
+            <button type="button" class="shift-btn" data-shift="first">First shift<span class="shift-time">12:00 AM - 8:00 AM</span></button>
+            <button type="button" class="shift-btn" data-shift="second">Second shift<span class="shift-time">8:00 AM - 4:00 PM</span></button>
+            <button type="button" class="shift-btn" data-shift="third">Third shift<span class="shift-time">4:00 PM - 12:00 AM</span></button>
           </div>
-          <div class="field note"><label for="noteInput">Note (optional)</label><input type="text" id="noteInput" placeholder="e.g. Month-end closing"></div>
-          <button class="add-btn" id="addBtn">Add entry</button>
-          <div class="form-msg" id="formMsg"></div>
         </div>
+        <div class="field note"><label for="noteInput">Note (optional)</label><input type="text" id="noteInput" placeholder="e.g. Month-end closing"></div>
+        <button class="add-btn" id="addBtn">Add entry</button>
+        <div class="form-msg" id="formMsg"></div>
       </div>
     </div>
   </div>
 
   <div id="adminTab" class="hidden">
     <div class="admin-grid">
-      
-      <!-- NEW: ACCOUNT APPROVAL MANAGEMENT PANEL -->
-      <div class="admin-card" style="grid-column:1/-1; background: #f8fafc; border: 1px solid #cbd5e1;">
-        <h3>User Account Approvals & Permissions</h3>
-        <p>Manage user registration requests. Only users marked as <strong>Approved Editor</strong> can submit entries on the Overtime Calendar.</p>
-        
-        <div style="overflow-x: auto; margin-top: 12px;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-            <thead>
-              <tr style="border-bottom: 2px solid #cbd5e1; background: #e2e8f0;">
-                <th style="padding: 8px;">Name / Email</th>
-                <th style="padding: 8px;">Role</th>
-                <th style="padding: 8px;">Status</th>
-                <th style="padding: 8px;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="userAccountsTableBody">
-              <!-- Dynamically populated via JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>CSV / Excel Paste Upload</h3>
         <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong> (one row per employee, shifts separated by commas). Use <code>RD</code> for Rest Day. First column = Department, Second = Name, rest = shifts for days 1-31.</p>
@@ -270,7 +239,6 @@
         </div>
         <div class="form-msg" id="csvMsg"></div>
       </div>
-      
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>Manual Schedule Editor</h3>
         <p>Edit shifts directly in the table below. Click a cell and type <code>1</code>, <code>2</code>, <code>3</code>, or <code>RD</code>. Use the month selector above.</p>
@@ -281,7 +249,6 @@
         </div>
         <div class="form-msg" id="manualMsg"></div>
       </div>
-      
       <div class="admin-card">
         <h3>How It Works</h3>
         <p><strong>Priority:</strong> Firebase cloud data &rarr; Local browser data &rarr; Hardcoded fallback</p>
@@ -298,18 +265,11 @@
   </div>
 </div>
 
-<!-- MULTI-TAB LOGIN & REGISTER MODAL -->
+<!-- Login Modal Popup -->
 <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
-  <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 340px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
+  <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 320px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
     <span id="closeLoginModal" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
-    
-    <!-- Switch between Login / Register -->
-    <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-      <button id="showLoginFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Log In</button>
-      <button id="showRegisterFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; color: #64748b;">Register</button>
-    </div>
-
-    <!-- Login Form -->
+    <h2 style="margin-top: 0; font-size: 20px;">Sign In</h2>
     <form id="loginForm">
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
         <label for="loginEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
@@ -319,30 +279,12 @@
         <label for="loginPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
         <input type="password" id="loginPassword" required placeholder="••••••••" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
       </div>
-      <button type="submit" style="width: 100%; background-color: #007bff; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Sign In</button>
+      <button type="submit" style="width: 100%; background-color: #007bff; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Log In</button>
     </form>
-
-    <!-- Register Form -->
-    <form id="registerForm" style="display: none;">
-      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
-        <label for="regName" style="font-size: 14px; margin-bottom: 4px;">Full Name</label>
-        <input type="text" id="regName" required placeholder="John Doe" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
-        <label for="regEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
-        <input type="email" id="regEmail" required placeholder="user@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
-        <label for="regPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
-        <input type="password" id="regPassword" required placeholder="••••••••" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <button type="submit" style="width: 100%; background-color: #28a745; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Create Account</button>
-    </form>
-
-    <div id="authMsg" style="margin-top: 10px; font-size: 13px; text-align: center;"></div>
   </div>
 </div>
-</script>
+
+<script>
 (function(){
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
