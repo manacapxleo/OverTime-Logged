@@ -162,11 +162,22 @@
       <button id="nextBtn" aria-label="Next month">&#8250;</button>
     </div>
   </div>
-  <div class="tab-bar">
-    <button class="tab-btn active" data-tab="roster">Shift Roster</button>
-    <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
-    <button class="tab-btn" data-tab="admin">Admin / Upload</button>
+
+  <!-- TAB BAR WITH LOG IN BUTTON NEXT TO ADMIN -->
+  <div class="tab-bar" style="display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; gap: 4px;">
+      <button class="tab-btn active" data-tab="roster">Shift Roster</button>
+      <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
+      <button class="tab-btn" data-tab="admin">Admin / Upload</button>
+    </div>
+    
+    <!-- Log In / User Control on the right side of the tab bar -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button id="loginBtn" class="tab-btn" style="background-color: #007bff; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log In</button>
+      <span id="userInfo" style="display: none; font-size: 14px; font-weight: bold;"></span>
+    </div>
   </div>
+
   <div id="rosterTab">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div class="legend">
@@ -179,6 +190,7 @@
     </div>
     <div id="rosterContainer"></div>
   </div>
+
   <div id="calendarTab" class="hidden">
     <div class="summary-bar">
       <div class="stamp"><div class="n" id="sumHours">0.0h</div><div class="l">This month</div></div>
@@ -208,6 +220,7 @@
       </div>
     </div>
   </div>
+
   <div id="adminTab" class="hidden">
     <div class="admin-grid">
       <div class="admin-card" style="grid-column:1/-1;">
@@ -249,15 +262,10 @@
         <p>You can also use tab-separated values - just paste from Excel and it will work.</p>
       </div>
     </div>
-    <!-- Inside your navbar / button header where Admin sits -->
-<!-- Container that forces Admin and Log In to sit side-by-side -->
-<div style="display: inline-flex; align-items: center; gap: 8px;">
-  <button id="adminBtn" class="btn">Admin</button>
-  <button id="loginBtn" class="btn" style="background-color: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Log In</button>
-  <span id="userInfo" style="display: none; font-size: 14px; font-weight: bold;"></span>
+  </div>
 </div>
 
-<!-- Login Modal Popup (place near bottom before </body>) -->
+<!-- Login Modal Popup -->
 <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
   <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 320px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
     <span id="closeLoginModal" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
@@ -273,8 +281,6 @@
       </div>
       <button type="submit" style="width: 100%; background-color: #007bff; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Log In</button>
     </form>
-  </div>
-</div>
   </div>
 </div>
 <script>
