@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
@@ -96,60 +97,6 @@
   .source-badge.hardcoded{background:var(--blue-tint);color:var(--blue);}.source-badge.none{background:var(--red-tint);color:var(--red);}
   .hidden{display:none !important;}
   @media(max-width:560px){.day-cell{min-height:58px;padding:4px;}.num{font-size:11px;width:18px;height:18px;}.tally{font-size:9.5px;padding:1px 4px;}.masthead h1{font-size:22px;}.field.note input{width:140px;}.tab-btn{padding:8px 10px;font-size:12px;}.admin-grid{grid-template-columns:1fr;}}
-/* Align buttons horizontally */
-.nav-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Basic Modal Styling */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  width: 320px;
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.close-btn {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.form-group {
-  margin-bottom: 14px;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.form-group input {
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
 </style>
 </head>
 <body>
@@ -168,7 +115,8 @@
     <div style="display: flex; gap: 4px;">
       <button class="tab-btn active" data-tab="roster">Shift Roster</button>
       <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
-      <button class="tab-btn" data-tab="admin">Admin / Upload</button>
+      <!-- Hidden by default until Admin logs in -->
+      <button class="tab-btn hidden" id="adminTabBtn" data-tab="admin">Admin / Upload</button>
     </div>
     
     <!-- Auth Status / Log In Button -->
@@ -206,10 +154,10 @@
       <div class="panel-head"><h2 id="panelDate">Select a date</h2><div class="tot" id="panelTotal"></div></div>
       <div class="entries" id="entriesList"></div>
 
-      <!-- Overtime Add Form (Locked until account is approved) -->
+      <!-- Overtime Add Form -->
       <div class="add-form" id="addForm" style="display:none;">
         <div id="otPermissionNotice" style="display:none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px;">
-          🔒 <strong>Permission Required:</strong> You need an approved editor account to log overtime entries.
+          🔒 <strong>Permission Required:</strong> You need an approved account to log overtime entries.
         </div>
         <div id="otFormFields">
           <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
@@ -231,11 +179,9 @@
 
   <div id="adminTab" class="hidden">
     <div class="admin-grid">
-      
-      <!-- NEW: ACCOUNT APPROVAL MANAGEMENT PANEL -->
       <div class="admin-card" style="grid-column:1/-1; background: #f8fafc; border: 1px solid #cbd5e1;">
         <h3>User Account Approvals & Permissions</h3>
-        <p>Manage user registration requests. Only users marked as <strong>Approved Editor</strong> can submit entries on the Overtime Calendar.</p>
+        <p>Manage registered accounts stored in Firebase.</p>
         
         <div style="overflow-x: auto; margin-top: 12px;">
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
@@ -248,7 +194,6 @@
               </tr>
             </thead>
             <tbody id="userAccountsTableBody">
-              <!-- Dynamically populated via JS -->
             </tbody>
           </table>
         </div>
@@ -256,12 +201,12 @@
 
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>CSV / Excel Paste Upload</h3>
-        <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong> (one row per employee, shifts separated by commas). Use <code>RD</code> for Rest Day. First column = Department, Second = Name, rest = shifts for days 1-31.</p>
+        <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong></p>
         <div class="month-selector">
           <div class="field"><label>Year</label><input type="number" id="csvYear" value="2026" min="2024" max="2030"></div>
           <div class="field"><label>Month</label><select id="csvMonth"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6" selected>July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select></div>
         </div>
-        <textarea class="csv-textarea" id="csvInput" placeholder="PH, MAITEM, 2, 2, 2, 2, RD, RD, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, RD, 2, 2, 2, 2, 2, 2, RD, RD, 1, 1, 1&#10;PH, DELIMA, RD, 1, 1, 1, 1, 1, RD, 3, 3, 3, 3, 3, 3, 3, RD, 2, 2, 2, 2, RD, 2, RD, RD, 1, 1, 1, 1, 1, RD, 3, 3&#10;..."></textarea>
+        <textarea class="csv-textarea" id="csvInput" placeholder="PH, MAITEM, 2, 2, 2, 2, RD, RD, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, RD, 2, 2, 2, 2, 2, 2, RD, RD, 1, 1, 1"></textarea>
         <div class="bulk-actions">
           <button class="add-btn" id="previewCsvBtn">Preview</button>
           <button class="add-btn success" id="saveCsvBtn">Save to Firebase</button>
@@ -273,7 +218,7 @@
       
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>Manual Schedule Editor</h3>
-        <p>Edit shifts directly in the table below. Click a cell and type <code>1</code>, <code>2</code>, <code>3</code>, or <code>RD</code>. Use the month selector above.</p>
+        <p>Edit shifts directly in the table below. Click a cell and type <code>1</code>, <code>2</code>, <code>3</code>, or <code>RD</code>.</p>
         <div id="manualEditor"></div>
         <div class="bulk-actions">
           <button class="add-btn success" id="saveManualBtn">Save to Firebase</button>
@@ -281,29 +226,15 @@
         </div>
         <div class="form-msg" id="manualMsg"></div>
       </div>
-      
-      <div class="admin-card">
-        <h3>How It Works</h3>
-        <p><strong>Priority:</strong> Firebase cloud data &rarr; Local browser data &rarr; Hardcoded fallback</p>
-        <p>1. <strong>Firebase:</strong> Saves to cloud for all team members to see. Requires Firestore write permissions.</p>
-        <p>2. <strong>Local:</strong> Saves only in this browser. Others won't see it.</p>
-        <p>3. <strong>Hardcoded:</strong> Built-in July &amp; August 2026 schedules as fallback.</p>
-      </div>
-      <div class="admin-card">
-        <h3>Excel to CSV Tip</h3>
-        <p>In Excel, select your schedule table (including dept/name columns), copy, and paste directly into the text area above. The app will auto-detect the format.</p>
-        <p>You can also use tab-separated values - just paste from Excel and it will work.</p>
-      </div>
     </div>
   </div>
 </div>
 
-<!-- MULTI-TAB LOGIN & REGISTER MODAL -->
+<!-- LOGIN & REGISTER MODAL -->
 <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
   <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 340px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
     <span id="closeLoginModal" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
     
-    <!-- Switch between Login / Register -->
     <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
       <button id="showLoginFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Log In</button>
       <button id="showRegisterFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; color: #64748b;">Register</button>
@@ -313,7 +244,7 @@
     <form id="loginForm">
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
         <label for="loginEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
-        <input type="email" id="loginEmail" required placeholder="user@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <input type="email" id="loginEmail" required placeholder="admin@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
       </div>
       <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
         <label for="loginPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
@@ -342,11 +273,9 @@
     <div id="authMsg" style="margin-top: 10px; font-size: 13px; text-align: center;"></div>
   </div>
 </div>
+
 <script>
 (function(){
-  const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const ADMIN_PASSWORD = "leeyoo";
   const firebaseConfig={
     apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
     authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
@@ -355,6 +284,212 @@
     messagingSenderId:"55428287155",
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
+
+  let db=null, auth=null, currentUserDoc=null;
+  let firebaseReady=false;
+
+  try {
+    if(firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY"){
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+      firebaseReady = true;
+      document.getElementById('syncStatus').innerText = "Firebase Connected";
+    }
+  } catch(e) {
+    console.error('Firebase init failed', e);
+    document.getElementById('syncStatus').innerText = "Offline Mode";
+  }
+
+  // --- Auth & Admin Tab Logic ---
+  const adminTabBtn = document.getElementById('adminTabBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userBadge = document.getElementById('userBadge');
+  const loginModal = document.getElementById('loginModal');
+  const closeLoginModal = document.getElementById('closeLoginModal');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const showLoginFormBtn = document.getElementById('showLoginFormBtn');
+  const showRegisterFormBtn = document.getElementById('showRegisterFormBtn');
+  const authMsg = document.getElementById('authMsg');
+
+  // Modal Open / Close
+  loginBtn.addEventListener('click', () => loginModal.style.display = 'flex');
+  closeLoginModal.addEventListener('click', () => loginModal.style.display = 'none');
+
+  showLoginFormBtn.addEventListener('click', () => {
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    showLoginFormBtn.style.color = '#007bff';
+    showLoginFormBtn.style.borderBottom = '2px solid #007bff';
+    showRegisterFormBtn.style.color = '#64748b';
+    showRegisterFormBtn.style.borderBottom = 'none';
+  });
+
+  showRegisterFormBtn.addEventListener('click', () => {
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    showRegisterFormBtn.style.color = '#007bff';
+    showRegisterFormBtn.style.borderBottom = '2px solid #007bff';
+    showLoginFormBtn.style.color = '#64748b';
+    showLoginFormBtn.style.borderBottom = 'none';
+  });
+
+  // User Sign-up
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authMsg.innerText = '';
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+
+    try {
+      const res = await auth.createUserWithEmailAndPassword(email, password);
+      const isMasterAdmin = email.toLowerCase() === 'admin@apopackhouse.com';
+      
+      await db.collection('users').doc(res.user.uid).set({
+        name: name,
+        email: email,
+        role: isMasterAdmin ? 'admin' : 'editor',
+        status: isMasterAdmin ? 'approved' : 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      authMsg.style.color = 'green';
+      authMsg.innerText = 'Account registered successfully!';
+      setTimeout(() => { loginModal.style.display = 'none'; }, 1000);
+    } catch(err) {
+      authMsg.style.color = 'red';
+      authMsg.innerText = err.message;
+    }
+  });
+
+  // User Login
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authMsg.innerText = '';
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      authMsg.style.color = 'green';
+      authMsg.innerText = 'Logged in!';
+      setTimeout(() => { loginModal.style.display = 'none'; }, 800);
+    } catch(err) {
+      authMsg.style.color = 'red';
+      authMsg.innerText = err.message;
+    }
+  });
+
+  // User Logout
+  logoutBtn.addEventListener('click', () => {
+    auth.signOut();
+  });
+
+  // Auth Observer
+  if(firebaseReady) {
+    auth.onAuthStateChanged(async (user) => {
+      if(user) {
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
+        
+        // Fetch User Data
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if(userDoc.exists) {
+          currentUserDoc = userDoc.data();
+          userBadge.innerText = `${currentUserDoc.name} (${currentUserDoc.role})`;
+          userBadge.style.display = 'inline-block';
+
+          if(currentUserDoc.role === 'admin') {
+            adminTabBtn.classList.remove('hidden');
+            loadUserAccountsTable();
+          } else {
+            adminTabBtn.classList.add('hidden');
+            // If viewing admin tab, force fallback to roster
+            document.getElementById('rosterTab').classList.remove('hidden');
+            document.getElementById('adminTab').classList.add('hidden');
+          }
+        }
+      } else {
+        currentUserDoc = null;
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        userBadge.style.display = 'none';
+        adminTabBtn.classList.add('hidden');
+        document.getElementById('rosterTab').classList.remove('hidden');
+        document.getElementById('adminTab').classList.add('hidden');
+      }
+    });
+  }
+
+  // Fetch Users List for Admin View
+  async function loadUserAccountsTable() {
+    const tbody = document.getElementById('userAccountsTableBody');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;">Loading users...</td></tr>';
+    
+    try {
+      const snap = await db.collection('users').get();
+      tbody.innerHTML = '';
+      snap.forEach((doc) => {
+        const u = doc.data();
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #e2e8f0';
+        tr.innerHTML = `
+          <td style="padding:8px;"><strong>${u.name || 'N/A'}</strong><br><small style="color:#64748b">${u.email}</small></td>
+          <td style="padding:8px;">
+            <select onchange="updateUserRole('${doc.id}', this.value)" style="padding:4px; border-radius:4px;">
+              <option value="editor" ${u.role === 'editor' ? 'selected' : ''}>Editor</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+            </select>
+          </td>
+          <td style="padding:8px;">
+            <span style="padding: 2px 6px; border-radius:4px; font-size:12px; background:${u.status === 'approved' ? '#dcfce7' : '#fef3c7'}; color:${u.status === 'approved' ? '#166534' : '#92400e'}">
+              ${u.status || 'pending'}
+            </span>
+          </td>
+          <td style="padding:8px;">
+            <button onclick="toggleUserStatus('${doc.id}', '${u.status}')" style="padding:4px 8px; font-size:12px; cursor:pointer; background:#3b82f6; color:white; border:none; border-radius:4px;">
+              ${u.status === 'approved' ? 'Revoke' : 'Approve'}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch(err) {
+      tbody.innerHTML = `<tr><td colspan="4" style="padding:10px; color:red;">Failed to load users: ${err.message}</td></tr>`;
+    }
+  }
+
+  window.toggleUserStatus = async (uid, currentStatus) => {
+    const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
+    await db.collection('users').doc(uid).update({ status: newStatus });
+    loadUserAccountsTable();
+  };
+
+  window.updateUserRole = async (uid, newRole) => {
+    await db.collection('users').doc(uid).update({ role: newRole });
+    loadUserAccountsTable();
+  };
+
+  // Tab switcher
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('rosterTab').classList.toggle('hidden', tab !== 'roster');
+      document.getElementById('calendarTab').classList.toggle('hidden', tab !== 'calendar');
+      document.getElementById('adminTab').classList.toggle('hidden', tab !== 'admin');
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
 
   let db=null,docRef=null,rosterRef=null,firebaseReady=false;
   try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
