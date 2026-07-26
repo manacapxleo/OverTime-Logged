@@ -487,9 +487,6 @@
   });
 
 })();
-</script>
-</body>
-</html>
 
   let db=null,docRef=null,rosterRef=null,firebaseReady=false;
   try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
