@@ -927,7 +927,16 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     return div.innerHTML;
   }
 
-// Selected DOM Elements
+  // Account Store & Current Session State
+  let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
+    { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' },
+  ];
+  let currentUser = JSON.parse(localStorage.getItem('apo_current_user')) || null;
+
+  function saveAccounts() {
+    localStorage.setItem('apo_accounts', JSON.stringify(accounts));
+  }
+
   const loginModal = document.getElementById('loginModal'),
     loginBtn = document.getElementById('loginBtn'),
     logoutBtn = document.getElementById('logoutBtn'),
@@ -939,7 +948,6 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     authMsg = document.getElementById('authMsg'),
     userBadge = document.getElementById('userBadge');
 
-  // Modal Toggle Handlers
   if (loginBtn && loginModal) loginBtn.addEventListener('click', () => { loginModal.style.display = 'flex'; });
   if (closeLoginModal && loginModal) closeLoginModal.addEventListener('click', () => { loginModal.style.display = 'none'; });
 
@@ -965,85 +973,71 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     });
   }
 
-  // --- FIREBASE REGISTRATION HANDLER ---
   if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
+    registerForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('regName').value.trim();
       const email = document.getElementById('regEmail').value.trim().toLowerCase();
       const password = document.getElementById('regPassword').value;
 
-      if (!auth || !db) {
-        alert('Firebase is not initialized yet. Check your config.');
+      if (accounts.some((acc) => acc.email === email)) {
+        if (authMsg) {
+          authMsg.style.color = '#dc3545';
+          authMsg.textContent = 'Account with this email already exists.';
+        }
         return;
       }
 
-      try {
-        if (authMsg) authMsg.textContent = 'Registering account...';
+      accounts.push({ name, email, password, role: 'editor', status: 'pending' });
+      saveAccounts();
 
-        // 1. Create User in Firebase Authentication
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        const uid = userCredential.user.uid;
-
-        // 2. Save User Record in Firestore 'users' collection
-        await db.collection('users').doc(uid).set({
-          name: name,
-          email: email,
-          role: 'editor',
-          status: 'pending',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        if (authMsg) {
-          authMsg.style.color = '#28a745';
-          authMsg.textContent = 'Registration successful! Wait for Admin approval.';
-        }
-        registerForm.reset();
-      } catch (error) {
-        if (authMsg) {
-          authMsg.style.color = '#dc3545';
-          authMsg.textContent = error.message;
-        }
+      if (authMsg) {
+        authMsg.style.color = '#28a745';
+        authMsg.textContent = 'Registration successful! Wait for Admin approval.';
       }
+      registerForm.reset();
+      renderAdminAccountTable();
     });
   }
 
-  // --- FIREBASE LOGIN HANDLER ---
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
+if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim().toLowerCase();
       const password = document.getElementById('loginPassword').value;
 
-      if (!auth) {
-        alert('Firebase Auth is not initialized.');
-        return;
-      }
+      const user = accounts.find((acc) => acc.email === email && acc.password === password);
 
-      try {
-        if (authMsg) authMsg.textContent = 'Logging in...';
-
-        // Authenticate with Firebase Auth
-        await auth.signInWithEmailAndPassword(email, password);
-
-        if (loginModal) loginModal.style.display = 'none';
-        loginForm.reset();
-        if (authMsg) authMsg.textContent = '';
-      } catch (error) {
+      if (!user) {
         if (authMsg) {
           authMsg.style.color = '#dc3545';
           authMsg.textContent = 'Invalid email or password.';
+        }
+        return;
+      }
+
+      currentUser = user;
+      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+      updateAuthUI();
+      
+      if (loginModal) loginModal.style.display = 'none';
+      loginForm.reset();
+
+      // AUTO-OPEN ADMIN TAB IF LOGGING IN AS ADMIN
+      if (currentUser.role === 'admin') {
+        const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
+        if (adminTabBtn) {
+          adminTabBtn.click(); // Automatically clicks the admin tab to bring it up
         }
       }
     });
   }
 
-  // --- FIREBASE LOGOUT HANDLER ---
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      if (auth) {
-        auth.signOut();
-      }
+      currentUser = null;
+      localStorage.removeItem('apo_current_user');
+      updateAuthUI();
     });
   }
 
