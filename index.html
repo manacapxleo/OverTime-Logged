@@ -485,7 +485,943 @@
       document.getElementById('adminTab').classList.toggle('hidden', tab !== 'admin');
     });
   });
+  let db=null,docRef=null,rosterRef=null,firebaseReady=false;
+  try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
 
+  const HARDCODED_ROSTERS={
+    '2026-07':{
+      'PH':[{name:'MAITEM',shifts:['2','2','2','2','RD','RD','1','1','1','1','1','1','1','1','1','1','1','1','1','RD','2','2','2','2','2','2','RD','RD','1','1','1']},{name:'DELIMA',shifts:['RD','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','2','2','2','2','RD','2','RD','RD','1','1','1','1','1','RD','3','3']},{name:'SANCHEZ',shifts:['1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','RD','RD','2']},{name:'BOLANTE',shifts:['3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD']}],
+      'PPH':[{name:'CANTILLAS',shifts:['2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','2','RD','RD','1','1']},{name:'LABANAN',shifts:['RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3']},{name:'MISA',shifts:['1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2']},{name:'MAÑACAP',shifts:['3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD']}],
+      'JT':[{name:'MEDIQUILLO',shifts:['2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1']},{name:'ALFORQUE',shifts:['RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3']},{name:'DELOSTRICO',shifts:['1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2']},{name:'ORQUIZA',shifts:['3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD']}],
+      'F.O':[{name:'CANOY',shifts:['2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1']},{name:'SEQUILLO',shifts:['2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1']},{name:'FLORIDA',shifts:['RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3']},{name:'CARPIO',shifts:['RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3']},{name:'PARBA',shifts:['1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2']},{name:'BASTISMO',shifts:['1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2']},{name:'ABALO',shifts:['3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD']},{name:'ALIGANGA',shifts:['3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD']}]
+    },
+    '2026-08':{
+      'PH':[{name:'MAITEM',shifts:['1','1','1','1','1','1','RD','RD','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD']},{name:'DELIMA',shifts:['3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1']},{name:'SANCHEZ',shifts:['2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD']},{name:'BOLANTE',shifts:['RD','RD','2','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2']}],
+      'PPH':[{name:'CANTILLAS',shifts:['1','1','1','1','1','1','RD','RD','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD']},{name:'LABANAN',shifts:['3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1']},{name:'MISA',shifts:['2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD']},{name:'MAÑACAP',shifts:['RD','RD','2','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2']}],
+      'JT':[{name:'MEDIQUILLO',shifts:['1','1','1','1','1','1','RD','RD','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD']},{name:'ALFORQUE',shifts:['3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1']},{name:'DELOSTRICO',shifts:['2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD']},{name:'ORQUIZA',shifts:['RD','RD','2','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2']}],
+      'F.O':[{name:'CANOY',shifts:['1','1','1','1','1','1','RD','RD','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD']},{name:'SEQUILLO',shifts:['1','1','1','1','1','1','RD','RD','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD']},{name:'FLORIDA',shifts:['3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1']},{name:'CARPIO',shifts:['3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1']},{name:'PARBA',shifts:['2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD']},{name:'BASTISMO',shifts:['2','2','2','2','2','RD','RD','3','3','3','3','3','3','3','RD','RD','1','1','1','1','1','1','1','RD','2','2','2','2','2','RD','RD']},{name:'ABALO',shifts:['RD','RD','2','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2']},{name:'ALIGANGA',shifts:['RD','RD','2','2','2','2','2','2','2','RD','RD','1','1','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2']}]
+    }
+  };
+
+(function () {
+  let currentRoster = null,
+    rosterSource = 'hardcoded',
+    data = {},
+    current = new Date();
+  current.setDate(1);
+
+  let selectedDate = null,
+    selectedShift = null,
+    selectedEmployee = null,
+    parsedCsvRoster = null;
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateKey = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+  const rosterKey = (y, m) => `${y}-${pad(m + 1)}`;
+  const todayKey = (() => {
+    const t = new Date();
+    return dateKey(t.getFullYear(), t.getMonth(), t.getDate());
+  })();
+
+  const LOCAL_FALLBACK_KEY = 'overtime-entries';
+  const LOCAL_ROSTER_KEY = 'apo-rosters';
+
+  function timeToMinutes(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function fmtTime(t) {
+    const [h, m] = t.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return `${h12}:${pad(m)} ${period}`;
+  }
+
+  function setStatus(text) {
+    const el = document.getElementById('syncStatus');
+    if (el) el.textContent = text;
+  }
+
+  async function loadRoster(year, month) {
+    const key = rosterKey(year, month);
+    if (typeof firebaseReady !== 'undefined' && firebaseReady && typeof rosterRef !== 'undefined' && rosterRef) {
+      try {
+        const doc = await rosterRef.doc(key).get();
+        if (doc.exists) {
+          currentRoster = doc.data().departments;
+          rosterSource = 'firebase';
+          updateSourceBadge();
+          return;
+        }
+      } catch (e) {
+        console.log('Firebase roster not found');
+      }
+    }
+    try {
+      const local = localStorage.getItem(LOCAL_ROSTER_KEY);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (parsed[key]) {
+          currentRoster = parsed[key];
+          rosterSource = 'local';
+          updateSourceBadge();
+          return;
+        }
+      }
+    } catch (e) {}
+
+    if (typeof HARDCODED_ROSTERS !== 'undefined' && HARDCODED_ROSTERS[key]) {
+      currentRoster = HARDCODED_ROSTERS[key];
+      rosterSource = 'hardcoded';
+    } else {
+      currentRoster = null;
+      rosterSource = 'none';
+    }
+    updateSourceBadge();
+  }
+
+  function updateSourceBadge() {
+    const badge = document.getElementById('rosterSource');
+    if (!badge) return;
+    badge.className = 'source-badge ' + rosterSource;
+    const labels = {
+      firebase: 'Firebase Cloud',
+      local: 'Local Browser',
+      hardcoded: 'Hardcoded',
+      none: 'No Data',
+    };
+    badge.textContent = labels[rosterSource] || 'Unknown';
+  }
+
+  function listenForChanges(onFirstLoad) {
+    if (typeof firebaseReady === 'undefined' || !firebaseReady) {
+      setStatus('Not connected - saving locally');
+      try {
+        const raw = localStorage.getItem(LOCAL_FALLBACK_KEY);
+        data = raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        data = {};
+      }
+      onFirstLoad();
+      return;
+    }
+    docRef.onSnapshot(
+      (snap) => {
+        const remote = snap.exists ? snap.data() : {};
+        data = remote && remote.entries ? remote.entries : {};
+        setStatus('Synced - shared with team');
+        onFirstLoad();
+      },
+      (err) => {
+        console.error('Sync error', err);
+        setStatus('Connection issue');
+      }
+    );
+  }
+
+  async function saveData() {
+    if (typeof firebaseReady === 'undefined' || !firebaseReady) {
+      try {
+        localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(data));
+      } catch (e) {}
+      return;
+    }
+    try {
+      await docRef.set({ entries: data }, { merge: false });
+    } catch (e) {
+      setStatus('Could not save');
+      alert('Could not save to cloud.');
+    }
+  }
+
+  function dayTotal(key) {
+    const list = data[key] || [];
+    return Math.round(list.reduce((sum, e) => sum + e.hours, 0) * 100) / 100;
+  }
+
+  const tabBtns = document.querySelectorAll('.tab-btn'),
+    rosterTab = document.getElementById('rosterTab'),
+    calendarTab = document.getElementById('calendarTab'),
+    adminTab = document.getElementById('adminTab');
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+
+      // PASSWORD PROTECTION GATE FOR ADMIN TAB
+      if (tab === 'admin') {
+        const passwordCheck = prompt('Enter Admin Password to continue:');
+        if (typeof ADMIN_PASSWORD !== 'undefined' && passwordCheck !== ADMIN_PASSWORD) {
+          alert('Access Denied: Incorrect Password.');
+          return;
+        }
+      }
+
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (rosterTab) rosterTab.classList.toggle('hidden', tab !== 'roster');
+      if (calendarTab) calendarTab.classList.toggle('hidden', tab !== 'calendar');
+      if (adminTab) adminTab.classList.toggle('hidden', tab !== 'admin');
+
+      if (tab === 'roster') renderRoster();
+      if (tab === 'calendar') {
+        renderCalendar();
+        renderPanel();
+      }
+      if (tab === 'admin') renderManualEditor();
+    });
+  });
+
+  function getShiftClass(shift) {
+    if (shift === '1') return 'shift-1';
+    if (shift === '2') return 'shift-2';
+    if (shift === '3') return 'shift-3';
+    if (shift === 'RD') return 'shift-rd';
+    return '';
+  }
+
+  function renderRoster() {
+    const container = document.getElementById('rosterContainer');
+    const y = current.getFullYear(),
+      m = current.getMonth();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const monthLabel = document.getElementById('monthLabel');
+    if (monthLabel && typeof MONTHS !== 'undefined') {
+      monthLabel.textContent = `${MONTHS[m]} ${y}`;
+    }
+
+    if (!currentRoster) {
+      container.innerHTML =
+        '<div class="panel"><p style="color:var(--ink-soft);">No schedule for this month. Use Admin tab to upload.</p></div>';
+      return;
+    }
+
+    let html = '';
+    for (const [dept, employees] of Object.entries(currentRoster)) {
+      html += `<div class="dept"><div class="dept-header">${dept}</div><div class="schedule-table-wrap"><table class="schedule-table"><thead><tr><th class="name-col">Name</th>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(y, m, d);
+        const dow = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const isToday = dateKey(y, m, d) === todayKey;
+        html += `<th style="${isToday ? 'background:var(--amber);color:var(--paper-raised);' : ''}">${d}<br><span style="font-weight:400;font-size:10px;">${dow}</span></th>`;
+      }
+      html += `</tr></thead><tbody>`;
+      for (const emp of employees) {
+        html += `<tr data-emp="${emp.name}" data-dept="${dept}"><td class="name-col">${emp.name}</td>`;
+        for (let d = 0; d < daysInMonth; d++) {
+          const shift = emp.shifts[d] || '';
+          const key = dateKey(y, m, d + 1);
+          const isToday = key === todayKey;
+          html += `<td class="${getShiftClass(shift)}" style="${isToday ? 'outline:2px solid var(--amber);outline-offset:-2px;' : ''}" data-day="${d + 1}" data-shift="${shift}">${shift}</td>`;
+        }
+        html += `</tr>`;
+      }
+      html += `</tbody></table></div></div>`;
+    }
+    container.innerHTML = html;
+    container.querySelectorAll('.schedule-table tbody tr').forEach((row) => {
+      row.addEventListener('click', (e) => {
+        if (e.target.tagName === 'TD' && e.target.dataset.day) {
+          const day = parseInt(e.target.dataset.day);
+          const empName = row.dataset.emp;
+          selectedDate = dateKey(current.getFullYear(), current.getMonth(), day);
+          selectedEmployee = empName;
+          tabBtns.forEach((b) => b.classList.remove('active'));
+          const calBtn = document.querySelector('.tab-btn[data-tab="calendar"]');
+          if (calBtn) calBtn.classList.add('active');
+          if (rosterTab) rosterTab.classList.add('hidden');
+          if (calendarTab) calendarTab.classList.remove('hidden');
+          if (adminTab) adminTab.classList.add('hidden');
+          renderCalendar();
+          renderPanel();
+        }
+      });
+    });
+  }
+
+  function renderCalendar() {
+    const y = current.getFullYear(),
+      m = current.getMonth();
+    const monthLabel = document.getElementById('monthLabel');
+    if (monthLabel && typeof MONTHS !== 'undefined') {
+      monthLabel.textContent = `${MONTHS[m]} ${y}`;
+    }
+    const firstDow = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const body = document.getElementById('calendarBody');
+    if (!body) return;
+
+    body.innerHTML = '';
+    let html = '';
+    const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+    for (let i = 0; i < totalCells; i++) {
+      if (i % 7 === 0) html += '<div class="week-row">';
+      const dayNum = i - firstDow + 1;
+      if (dayNum < 1 || dayNum > daysInMonth) {
+        html += `<div class="day-cell empty"></div>`;
+      } else {
+        const key = dateKey(y, m, dayNum);
+        const total = dayTotal(key);
+        const isToday = key === todayKey;
+        const isSelected = key === selectedDate;
+        html += `<div class="day-cell${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" data-key="${key}" data-day="${dayNum}"><span class="num">${dayNum}</span>${total > 0 ? `<span class="tally">${total}h</span>` : ''}</div>`;
+      }
+      if (i % 7 === 6) html += '</div>';
+    }
+    body.innerHTML = html;
+    body.querySelectorAll('.day-cell:not(.empty)').forEach((cell) => {
+      cell.addEventListener('click', () => {
+        selectedDate = cell.dataset.key;
+        renderCalendar();
+        renderPanel();
+      });
+    });
+    renderSummary();
+  }
+
+  function renderSummary() {
+    const y = current.getFullYear(),
+      m = current.getMonth();
+    const prefix = `${y}-${pad(m + 1)}-`;
+    let totalHours = 0,
+      days = 0,
+      entries = 0;
+    Object.keys(data).forEach((key) => {
+      if (key.startsWith(prefix) && data[key].length) {
+        days++;
+        entries += data[key].length;
+        totalHours += dayTotal(key);
+      }
+    });
+    const sumHours = document.getElementById('sumHours');
+    const sumDays = document.getElementById('sumDays');
+    const sumEntries = document.getElementById('sumEntries');
+    if (sumHours) sumHours.textContent = `${Math.round(totalHours * 100) / 100}h`;
+    if (sumDays) sumDays.textContent = days;
+    if (sumEntries) sumEntries.textContent = entries;
+  }
+
+  const SHIFTS = {
+    first: { label: 'First shift', start: '00:00', end: '08:00', hours: 8 },
+    second: { label: 'Second shift', start: '08:00', end: '16:00', hours: 8 },
+    third: { label: 'Third shift', start: '16:00', end: '00:00', hours: 8 },
+  };
+
+  function getAllEmployees() {
+    const emps = [];
+    if (currentRoster) {
+      for (const [dept, employees] of Object.entries(currentRoster)) {
+        employees.forEach((e) => emps.push({ name: e.name, dept }));
+      }
+    }
+    return emps;
+  }
+
+  function renderPanel() {
+    const addForm = document.getElementById('addForm'),
+      panelDate = document.getElementById('panelDate'),
+      panelTotal = document.getElementById('panelTotal'),
+      entriesList = document.getElementById('entriesList'),
+      empSelect = document.getElementById('empSelect');
+
+    if (!selectedDate) {
+      if (panelDate) panelDate.textContent = 'Select a date';
+      if (panelTotal) panelTotal.textContent = '';
+      if (entriesList) entriesList.innerHTML = '';
+      if (empSelect) empSelect.innerHTML = '';
+      if (addForm) addForm.style.display = 'none';
+      return;
+    }
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (panelDate)
+      panelDate.textContent = dt.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+
+    const list = data[selectedDate] || [];
+    const total = dayTotal(selectedDate);
+    if (panelTotal) panelTotal.textContent = list.length ? `${total}h total` : '';
+
+    if (entriesList) {
+      if (list.length === 0) {
+        entriesList.innerHTML = '<div class="empty-note">No overtime logged for this date yet.</div>';
+      } else {
+        entriesList.innerHTML = list
+          .map(
+            (e) =>
+              `<div class="entry-row"><span class="entry-time">${
+                e.employeeName || 'Unknown'
+              }<br><span style="font-weight:400;font-size:12px;color:var(--ink-soft);">${
+                e.shiftLabel || ''
+              } &middot; ${fmtTime(e.start)} - ${fmtTime(e.end)}</span></span><span class="entry-hours">${
+                e.hours
+              }h</span><span class="entry-note">${
+                e.note ? escapeHtml(e.note) : ''
+              }</span><button class="entry-del" data-id="${
+                e.id
+              }" aria-label="Delete entry">&times;</button></div>`
+          )
+          .join('');
+        entriesList.querySelectorAll('.entry-del').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            data[selectedDate] = data[selectedDate].filter((e) => e.id !== btn.dataset.id);
+            if (data[selectedDate].length === 0) delete data[selectedDate];
+            await saveData();
+            renderCalendar();
+            renderPanel();
+          });
+        });
+      }
+    }
+
+    if (empSelect) {
+      const allEmps = getAllEmployees();
+      if (allEmps.length === 0) {
+        empSelect.innerHTML =
+          '<span style="color:var(--ink-soft);font-size:12px;">No employees loaded.</span>';
+      } else {
+        empSelect.innerHTML = allEmps
+          .map(
+            (e) =>
+              `<button type="button" class="emp-chip${
+                selectedEmployee === e.name ? ' active' : ''
+              }" data-name="${e.name}">${
+                e.name
+              } <span style="opacity:0.6;font-size:10px;"></span></button>`
+          )
+          .join('');
+        empSelect.querySelectorAll('.emp-chip').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            selectedEmployee = chip.dataset.name;
+            renderPanel();
+          });
+        });
+      }
+    }
+
+    if (addForm) addForm.style.display = 'flex';
+    const formMsg = document.getElementById('formMsg');
+    if (formMsg) formMsg.textContent = '';
+    selectedShift = null;
+    const shiftBtns = document.querySelectorAll('.shift-btn');
+    shiftBtns.forEach((btn) => {
+      btn.classList.remove('active');
+      btn.onclick = () => {
+        selectedShift = btn.dataset.shift;
+        shiftBtns.forEach((b) => b.classList.toggle('active', b === btn));
+      };
+    });
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // Account Store & Current Session State
+  let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
+    { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' },
+  ];
+  let currentUser = JSON.parse(localStorage.getItem('apo_current_user')) || null;
+
+  function saveAccounts() {
+    localStorage.setItem('apo_accounts', JSON.stringify(accounts));
+  }
+
+  const loginModal = document.getElementById('loginModal'),
+    loginBtn = document.getElementById('loginBtn'),
+    logoutBtn = document.getElementById('logoutBtn'),
+    closeLoginModal = document.getElementById('closeLoginModal'),
+    showLoginFormBtn = document.getElementById('showLoginFormBtn'),
+    showRegisterFormBtn = document.getElementById('showRegisterFormBtn'),
+    loginForm = document.getElementById('loginForm'),
+    registerForm = document.getElementById('registerForm'),
+    authMsg = document.getElementById('authMsg'),
+    userBadge = document.getElementById('userBadge');
+
+  if (loginBtn && loginModal) loginBtn.addEventListener('click', () => { loginModal.style.display = 'flex'; });
+  if (closeLoginModal && loginModal) closeLoginModal.addEventListener('click', () => { loginModal.style.display = 'none'; });
+
+  if (showLoginFormBtn && showRegisterFormBtn && loginForm && registerForm) {
+    showLoginFormBtn.addEventListener('click', () => {
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+      showLoginFormBtn.style.color = '#007bff';
+      showLoginFormBtn.style.borderBottom = '2px solid #007bff';
+      showRegisterFormBtn.style.color = '#64748b';
+      showRegisterFormBtn.style.borderBottom = 'none';
+      if (authMsg) authMsg.textContent = '';
+    });
+
+    showRegisterFormBtn.addEventListener('click', () => {
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+      showRegisterFormBtn.style.color = '#28a745';
+      showRegisterFormBtn.style.borderBottom = '2px solid #28a745';
+      showLoginFormBtn.style.color = '#64748b';
+      showLoginFormBtn.style.borderBottom = 'none';
+      if (authMsg) authMsg.textContent = '';
+    });
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim().toLowerCase();
+      const password = document.getElementById('regPassword').value;
+
+      if (accounts.some((acc) => acc.email === email)) {
+        if (authMsg) {
+          authMsg.style.color = '#dc3545';
+          authMsg.textContent = 'Account with this email already exists.';
+        }
+        return;
+      }
+
+      accounts.push({ name, email, password, role: 'editor', status: 'pending' });
+      saveAccounts();
+
+      if (authMsg) {
+        authMsg.style.color = '#28a745';
+        authMsg.textContent = 'Registration successful! Wait for Admin approval.';
+      }
+      registerForm.reset();
+      renderAdminAccountTable();
+    });
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value;
+
+      const user = accounts.find((acc) => acc.email === email && acc.password === password);
+
+      if (!user) {
+        if (authMsg) {
+          authMsg.style.color = '#dc3545';
+          authMsg.textContent = 'Invalid email or password.';
+        }
+        return;
+      }
+
+      currentUser = user;
+      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+      updateAuthUI();
+      if (loginModal) loginModal.style.display = 'none';
+      loginForm.reset();
+    });
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      currentUser = null;
+      localStorage.removeItem('apo_current_user');
+      updateAuthUI();
+    });
+  }
+
+  function updateAuthUI() {
+    const otPermissionNotice = document.getElementById('otPermissionNotice');
+    const otFormFields = document.getElementById('otFormFields');
+
+    if (currentUser) {
+      if (loginBtn) loginBtn.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      if (userBadge) {
+        userBadge.style.display = 'inline-block';
+        userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
+      }
+
+      if (currentUser.role === 'admin' || currentUser.status === 'approved') {
+        if (otPermissionNotice) otPermissionNotice.style.display = 'none';
+        if (otFormFields) {
+          otFormFields.style.opacity = '1';
+          otFormFields.style.pointerEvents = 'auto';
+        }
+      } else {
+        if (otPermissionNotice) {
+          otPermissionNotice.style.display = 'block';
+          otPermissionNotice.innerHTML =
+            '⌛ <strong>Approval Pending:</strong> Your account is registered, but requires Admin approval before you can edit overtime.';
+        }
+        if (otFormFields) {
+          otFormFields.style.opacity = '0.4';
+          otFormFields.style.pointerEvents = 'none';
+        }
+      }
+    } else {
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (userBadge) userBadge.style.display = 'none';
+
+      if (otPermissionNotice) {
+        otPermissionNotice.style.display = 'block';
+        otPermissionNotice.innerHTML =
+          '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
+      }
+      if (otFormFields) {
+        otFormFields.style.opacity = '0.4';
+        otFormFields.style.pointerEvents = 'none';
+      }
+    }
+  }
+
+  function renderAdminAccountTable() {
+    const tbody = document.getElementById('userAccountsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    accounts.forEach((acc, index) => {
+      if (acc.role === 'admin') return;
+
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #e2e8f0';
+
+      const statusBadge =
+        acc.status === 'approved'
+          ? '<span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;">Approved</span>'
+          : '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:12px;">Pending</span>';
+
+      tr.innerHTML = `
+        <td style="padding:8px;"><strong>${acc.name}</strong><br><small style="color:#64748b;">${acc.email}</small></td>
+        <td style="padding:8px;">Editor</td>
+        <td style="padding:8px;">${statusBadge}</td>
+        <td style="padding:8px;">
+          ${
+            acc.status === 'pending'
+              ? `<button class="btn-approve" data-index="${index}" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Approve</button>`
+              : `<button class="btn-revoke" data-index="${index}" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Revoke</button>`
+          }
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.btn-approve').forEach((btn) => {
+      btn.addEventListener('click', () => window.approveUser(parseInt(btn.dataset.index)));
+    });
+    tbody.querySelectorAll('.btn-revoke').forEach((btn) => {
+      btn.addEventListener('click', () => window.rejectUser(parseInt(btn.dataset.index)));
+    });
+  }
+
+  window.approveUser = function (index) {
+    accounts[index].status = 'approved';
+    saveAccounts();
+    renderAdminAccountTable();
+    if (currentUser && currentUser.email === accounts[index].email) {
+      currentUser.status = 'approved';
+      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+      updateAuthUI();
+    }
+  };
+
+  window.rejectUser = function (index) {
+    accounts[index].status = 'pending';
+    saveAccounts();
+    renderAdminAccountTable();
+    if (currentUser && currentUser.email === accounts[index].email) {
+      currentUser.status = 'pending';
+      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+      updateAuthUI();
+    }
+  };
+
+  updateAuthUI();
+  renderAdminAccountTable();
+
+  const addBtn = document.getElementById('addBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', async () => {
+      if (!selectedDate) return;
+      const note = document.getElementById('noteInput').value.trim();
+      const msg = document.getElementById('formMsg');
+      if (!selectedEmployee) {
+        if (msg) msg.textContent = 'Select an employee first.';
+        return;
+      }
+      if (!selectedShift) {
+        if (msg) msg.textContent = 'Choose a shift first.';
+        return;
+      }
+      const shift = SHIFTS[selectedShift];
+      if (!data[selectedDate]) data[selectedDate] = [];
+      const alreadyLogged = data[selectedDate].some(
+        (e) => e.employeeName === selectedEmployee && e.shift === selectedShift
+      );
+      if (alreadyLogged) {
+        if (msg) msg.textContent = `${selectedEmployee} already has ${shift.label} logged.`;
+        return;
+      }
+      data[selectedDate].push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        employeeName: selectedEmployee,
+        shift: selectedShift,
+        shiftLabel: shift.label,
+        start: shift.start,
+        end: shift.end,
+        hours: shift.hours,
+        note,
+      });
+      data[selectedDate].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+      await saveData();
+      document.getElementById('noteInput').value = '';
+      renderCalendar();
+      renderPanel();
+    });
+  }
+
+  const prevBtn = document.getElementById('prevBtn');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      current.setMonth(current.getMonth() - 1);
+      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+        if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
+        else renderRoster();
+      });
+    });
+  }
+
+  const nextBtn = document.getElementById('nextBtn');
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      current.setMonth(current.getMonth() + 1);
+      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+        if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
+        else renderRoster();
+      });
+    });
+  }
+
+  function parseCsvInput(text) {
+    const lines = text.trim().split('\n').filter((l) => l.trim());
+    const roster = {};
+    for (const line of lines) {
+      const parts = line.split(/[,\t]+/).map((p) => p.trim().toUpperCase());
+      if (parts.length < 3) continue;
+      const dept = parts[0],
+        name = parts[1],
+        shifts = parts.slice(2);
+      if (!roster[dept]) roster[dept] = [];
+      roster[dept].push({ name, shifts });
+    }
+    return Object.keys(roster).length > 0 ? roster : null;
+  }
+
+  const previewCsvBtn = document.getElementById('previewCsvBtn');
+  if (previewCsvBtn) {
+    previewCsvBtn.addEventListener('click', () => {
+      const text = document.getElementById('csvInput').value;
+      const msg = document.getElementById('csvMsg');
+      parsedCsvRoster = parseCsvInput(text);
+      if (!parsedCsvRoster) {
+        if (msg) {
+          msg.textContent = 'Could not parse. Format: DEPT, NAME, shift1, shift2, ...';
+          msg.className = 'form-msg';
+        }
+        return;
+      }
+      renderManualEditor(parsedCsvRoster);
+      if (msg) {
+        msg.textContent = `Parsed ${Object.values(parsedCsvRoster).flat().length} employees. Review below, then Save.`;
+        msg.className = 'form-msg success';
+      }
+    });
+  }
+
+  const saveCsvBtn = document.getElementById('saveCsvBtn');
+  if (saveCsvBtn) {
+    saveCsvBtn.addEventListener('click', async () => {
+      if (!parsedCsvRoster) {
+        const msg = document.getElementById('csvMsg');
+        if (msg) msg.textContent = 'Preview first.';
+        return;
+      }
+      await saveRosterToFirebase(parsedCsvRoster);
+    });
+  }
+
+  const saveLocalBtn = document.getElementById('saveLocalBtn');
+  if (saveLocalBtn) {
+    saveLocalBtn.addEventListener('click', () => {
+      if (!parsedCsvRoster) {
+        const msg = document.getElementById('csvMsg');
+        if (msg) msg.textContent = 'Preview first.';
+        return;
+      }
+      saveRosterToLocal(parsedCsvRoster);
+    });
+  }
+
+  const clearLocalBtn = document.getElementById('clearLocalBtn');
+  if (clearLocalBtn) {
+    clearLocalBtn.addEventListener('click', () => {
+      localStorage.removeItem(LOCAL_ROSTER_KEY);
+      const msg = document.getElementById('csvMsg');
+      if (msg) {
+        msg.textContent = 'Local roster data cleared.';
+        msg.className = 'form-msg success';
+      }
+      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+        if (rosterTab && !rosterTab.classList.contains('hidden')) renderRoster();
+      });
+    });
+  }
+
+  async function saveRosterToFirebase(rosterData) {
+    const msg = document.getElementById('csvMsg');
+    if (typeof firebaseReady === 'undefined' || !firebaseReady) {
+      if (msg) msg.textContent = 'Firebase not connected. Saving locally...';
+      saveRosterToLocal(rosterData);
+      return;
+    }
+    const year = document.getElementById('csvYear').value;
+    const month = parseInt(document.getElementById('csvMonth').value);
+    const key = rosterKey(year, month);
+    try {
+      await rosterRef.doc(key).set({ departments: rosterData, updatedAt: new Date().toISOString() });
+      if (msg && typeof MONTHS !== 'undefined') {
+        msg.textContent = `Saved to Firebase for ${MONTHS[month]} ${year}!`;
+        msg.className = 'form-msg success';
+      }
+      currentRoster = rosterData;
+      rosterSource = 'firebase';
+      updateSourceBadge();
+    } catch (e) {
+      if (msg) {
+        msg.textContent = 'Failed: ' + e.message;
+        msg.className = 'form-msg';
+      }
+    }
+  }
+
+  function saveRosterToLocal(rosterData) {
+    const msg = document.getElementById('csvMsg');
+    const year = document.getElementById('csvYear').value;
+    const month = parseInt(document.getElementById('csvMonth').value);
+    const key = rosterKey(year, month);
+    try {
+      const existing = JSON.parse(localStorage.getItem(LOCAL_ROSTER_KEY) || '{}');
+      existing[key] = rosterData;
+      localStorage.setItem(LOCAL_ROSTER_KEY, JSON.stringify(existing));
+      if (msg && typeof MONTHS !== 'undefined') {
+        msg.textContent = `Saved locally for ${MONTHS[month]} ${year}.`;
+        msg.className = 'form-msg success';
+      }
+      currentRoster = rosterData;
+      rosterSource = 'local';
+      updateSourceBadge();
+    } catch (e) {
+      if (msg) {
+        msg.textContent = 'Failed to save locally.';
+        msg.className = 'form-msg';
+      }
+    }
+  }
+
+  function renderManualEditor(previewRoster) {
+    const container = document.getElementById('manualEditor');
+    if (!container) return;
+
+    const roster = previewRoster || currentRoster;
+    if (!roster) {
+      container.innerHTML =
+        '<p style="color:var(--ink-soft);">No roster data to edit. Upload CSV or navigate to a month with data.</p>';
+      return;
+    }
+    const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+    let html =
+      '<div style="overflow-x:auto;"><table class="admin-table"><thead><tr><th>Dept</th><th>Name</th>';
+    for (let d = 1; d <= daysInMonth; d++) html += `<th>${d}</th>`;
+    html += '</tr></thead><tbody>';
+    for (const [dept, employees] of Object.entries(roster)) {
+      for (const emp of employees) {
+        html += `<tr data-dept="${dept}" data-name="${emp.name}"><td>${dept}</td><td>${emp.name}</td>`;
+        for (let d = 0; d < daysInMonth; d++) {
+          const shift = emp.shifts[d] || '';
+          html += `<td><input type="text" value="${shift}" data-day="${d}" maxlength="2" style="width:28px;text-align:center;"></td>`;
+        }
+        html += '</tr>';
+      }
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+    container.querySelectorAll('input[data-day]').forEach((input) => {
+      input.addEventListener('change', (e) => {
+        const row = e.target.closest('tr');
+        const dept = row.dataset.dept;
+        const name = row.dataset.name;
+        const day = parseInt(e.target.dataset.day);
+        const val = e.target.value.trim().toUpperCase();
+        if (!['1', '2', '3', 'RD', ''].includes(val)) {
+          e.target.value = '';
+          return;
+        }
+        if (!roster[dept]) return;
+        const emp = roster[dept].find((x) => x.name === name);
+        if (emp) {
+          emp.shifts[day] = val;
+        }
+      });
+    });
+  }
+
+  const saveManualBtn = document.getElementById('saveManualBtn');
+  if (saveManualBtn) {
+    saveManualBtn.addEventListener('click', async () => {
+      const roster = extractFromEditor();
+      if (roster) await saveRosterToFirebase(roster);
+    });
+  }
+
+  const saveManualLocalBtn = document.getElementById('saveManualLocalBtn');
+  if (saveManualLocalBtn) {
+    saveManualLocalBtn.addEventListener('click', () => {
+      const roster = extractFromEditor();
+      if (roster) saveRosterToLocal(roster);
+    });
+  }
+
+  function extractFromEditor() {
+    const container = document.getElementById('manualEditor');
+    if (!container) return null;
+    const table = container.querySelector('table');
+    if (!table) return null;
+    const roster = {};
+    table.querySelectorAll('tbody tr').forEach((row) => {
+      const dept = row.dataset.dept;
+      const name = row.dataset.name;
+      if (!roster[dept]) roster[dept] = [];
+      const shifts = [];
+      row.querySelectorAll('input[data-day]').forEach((input) => {
+        shifts.push(input.value.trim().toUpperCase() || '');
+      });
+      roster[dept].push({ name, shifts });
+    });
+    return roster;
+  }
+
+  (function init() {
+    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+      listenForChanges(() => {
+        renderRoster();
+        renderCalendar();
+        renderPanel();
+      });
+    });
+  })();
+})();
 </script>
 </body>
 </html>
