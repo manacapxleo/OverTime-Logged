@@ -1040,9 +1040,10 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     });
   }
 
-  function updateAuthUI() {
+ function updateAuthUI() {
     const otPermissionNotice = document.getElementById('otPermissionNotice');
     const otFormFields = document.getElementById('otFormFields');
+    const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
 
     if (currentUser) {
       if (loginBtn) loginBtn.style.display = 'none';
@@ -1050,6 +1051,11 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       if (userBadge) {
         userBadge.style.display = 'inline-block';
         userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
+      }
+
+      // Show Admin tab button if user is an Admin
+      if (adminTabBtn) {
+        adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
       }
 
       if (currentUser.role === 'admin' || currentUser.status === 'approved') {
@@ -1070,6 +1076,22 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
         }
       }
     } else {
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (userBadge) userBadge.style.display = 'none';
+      if (adminTabBtn) adminTabBtn.style.display = 'none'; // Hide admin tab when logged out
+
+      if (otPermissionNotice) {
+        otPermissionNotice.style.display = 'block';
+        otPermissionNotice.innerHTML =
+          '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
+      }
+      if (otFormFields) {
+        otFormFields.style.opacity = '0.4';
+        otFormFields.style.pointerEvents = 'none';
+      }
+    }
+  } else {
       if (loginBtn) loginBtn.style.display = 'inline-block';
       if (logoutBtn) logoutBtn.style.display = 'none';
       if (userBadge) userBadge.style.display = 'none';
