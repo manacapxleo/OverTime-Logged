@@ -979,7 +979,27 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       const name = document.getElementById('regName').value.trim();
       const email = document.getElementById('regEmail').value.trim().toLowerCase();
       const password = document.getElementById('regPassword').value;
+try {
+      // 1. Create the account in Auth
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const uid = userCredential.user.uid;
 
+      // 2. Automatically creates the 'users' collection & document in Firestore
+      await db.collection('users').doc(uid).set({
+        name: name,
+        email: email,
+        role: 'editor',
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      alert('Registration submitted! Awaiting Admin approval.');
+      registerForm.reset();
+    } catch (err) {
+      alert('Registration error: ' + err.message);
+    }
+  });
+      
       if (accounts.some((acc) => acc.email === email)) {
         if (authMsg) {
           authMsg.style.color = '#dc3545';
