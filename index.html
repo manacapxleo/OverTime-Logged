@@ -301,6 +301,30 @@
     document.getElementById('syncStatus').innerText = "Offline Mode";
   }
 
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (user && firebaseReady) {
+    console.log("Logged in user:", user.email);
+
+    // Fetch roster document
+    const query = await db.collection('rosters').where('email', '==', user.email).get();
+    
+    if (!query.empty) {
+      const userData = query.docs[0].data();
+      
+      // Update UI elements
+      document.getElementById('userName').textContent = userData.name || user.email;
+      
+      if (userData.approved) {
+        // Show approved UI
+      } else {
+        // Show pending message
+      }
+    } else {
+      console.warn("No matching document found in 'rosters' for this email.");
+    }
+  }
+});
+  
   // --- Auth & Admin Tab Logic ---
   const adminTabBtn = document.getElementById('adminTabBtn');
   const loginBtn = document.getElementById('loginBtn');
