@@ -1008,7 +1008,7 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     });
   }
 
-  if (loginForm) {
+if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -1027,8 +1027,17 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       currentUser = user;
       localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
       updateAuthUI();
+      
       if (loginModal) loginModal.style.display = 'none';
       loginForm.reset();
+
+      // AUTO-OPEN ADMIN TAB IF LOGGING IN AS ADMIN
+      if (currentUser.role === 'admin') {
+        const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
+        if (adminTabBtn) {
+          adminTabBtn.click(); // Automatically clicks the admin tab to bring it up
+        }
+      }
     });
   }
 
