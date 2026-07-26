@@ -1043,6 +1043,9 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   function updateAuthUI() {
     const otPermissionNotice = document.getElementById('otPermissionNotice');
     const otFormFields = document.getElementById('otFormFields');
+    
+    // Select the Admin Tab button
+    const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
 
     if (currentUser) {
       if (loginBtn) loginBtn.style.display = 'none';
@@ -1050,6 +1053,11 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       if (userBadge) {
         userBadge.style.display = 'inline-block';
         userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
+      }
+
+      // SHOW ADMIN TAB BUTTON IF USER IS ADMIN
+      if (adminTabBtn) {
+        adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
       }
 
       if (currentUser.role === 'admin' || currentUser.status === 'approved') {
@@ -1074,6 +1082,9 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       if (logoutBtn) logoutBtn.style.display = 'none';
       if (userBadge) userBadge.style.display = 'none';
 
+      // HIDE ADMIN TAB BUTTON WHEN LOGGED OUT
+      if (adminTabBtn) adminTabBtn.style.display = 'none';
+
       if (otPermissionNotice) {
         otPermissionNotice.style.display = 'block';
         otPermissionNotice.innerHTML =
@@ -1085,7 +1096,6 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       }
     }
   }
-
   function renderAdminAccountTable() {
     const tbody = document.getElementById('userAccountsTableBody');
     if (!tbody) return;
