@@ -659,14 +659,6 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   tabBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
-
-      // PASSWORD PROTECTION GATE FOR ADMIN TAB
-      if (tab === 'admin') {
-        const passwordCheck = prompt('Enter Admin Password to continue:');
-        if (typeof ADMIN_PASSWORD !== 'undefined' && passwordCheck !== ADMIN_PASSWORD) {
-          alert('Access Denied: Incorrect Password.');
-          return;
-        }
       }
 
       tabBtns.forEach((b) => b.classList.remove('active'));
