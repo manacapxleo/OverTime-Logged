@@ -301,9 +301,31 @@
     document.getElementById('syncStatus').innerText = "Offline Mode";
   }
 
-firebase.auth().onAuthStateChanged(async (user) => {
-  if (user && firebaseReady) {
-    console.log("Logged in user:", user.email);
+auth.onAuthStateChanged(async (firebaseUser) => {
+  if (firebaseUser) {
+    try {
+      const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+      
+      if (userDoc.exists) {
+        // Fetch live data directly from Firestore
+        currentUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          ...userDoc.data() // Contains live 'status' and 'role'
+        };
+      } else {
+        console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
+      }
+    } catch (err) {
+      console.error('Error loading user profile:', err);
+    }
+  } else {
+    currentUser = null;
+  }
+
+  // Refresh UI with the live Firestore status
+  updateAuthUI();
+});
 
     // Fetch roster document
     const query = await db.collection('rosters').where('email', '==', user.email).get();
