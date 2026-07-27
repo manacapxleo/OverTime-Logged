@@ -705,35 +705,114 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     }
   }
 
-  function dayTotal(key) {
-    const list = data[key] || [];
-    return Math.round(list.reduce((sum, e) => sum + e.hours, 0) * 100) / 100;
+function dayTotal(key) {
+    if (!data[key]) return 0;
+    return data[key].reduce((sum, item) => sum + (item.hours || 0), 0);
   }
 
-  const tabBtns = document.querySelectorAll('.tab-btn'),
-    rosterTab = document.getElementById('rosterTab'),
-    calendarTab = document.getElementById('calendarTab'),
-    adminTab = document.getElementById('adminTab');
+  function renderPanel() {
+    const dateLabel = document.getElementById('selectedDateLabel');
+    const dayTotalEl = document.getElementById('dayTotal');
+    const entriesList = document.getElementById('entriesList');
 
-  tabBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      
+    if (!selectedDate) {
+      if (dateLabel) dateLabel.textContent = 'Select a date from the calendar';
+      if (dayTotalEl) dayTotalEl.textContent = '0h total';
+      if (entriesList) entriesList.innerHTML = '<p style="color:var(--ink-soft);">No date selected.</p>';
+      return;
+    }
 
-      tabBtns.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (rosterTab) rosterTab.classList.toggle('hidden', tab !== 'roster');
-      if (calendarTab) calendarTab.classList.toggle('hidden', tab !== 'calendar');
-      if (adminTab) adminTab.classList.toggle('hidden', tab !== 'admin');
+    // Format selected date header
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dowStr = DOW[dateObj.getDay()];
+    const monthStr = MONTHS[m - 1];
+    if (dateLabel) dateLabel.textContent = `${dowStr}, ${monthStr} ${d}, ${y}`;
 
-      if (tab === 'roster') renderRoster();
-      if (tab === 'calendar') {
-        renderCalendar();
-        renderPanel();
+    const total = dayTotal(selectedDate);
+    if (dayTotalEl) dayTotalEl.textContent = `${total}h total`;
+
+    // CHECK PERMISSIONS: Only approved users or admins can see/use delete buttons
+    const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
+
+    const dayEntries = data[selectedDate] || [];
+    if (dayEntries.length === 0) {
+      if (entriesList) entriesList.innerHTML = '<p style="color:var(--ink-soft); font-size:14px; margin-top:8px;">No overtime logged for this day.</p>';
+    } else {
+      let html = '';
+      dayEntries.forEach((entry) => {
+        // Only generate the '×' button HTML if permission is granted
+        const deleteBtnHtml = canDelete
+          ? `<span class="delete-entry-btn" onclick="deleteOvertimeEntry('${selectedDate}', '${entry.id}')" title="Delete entry" style="cursor:pointer; color:#dc3545; font-size:16px; font-weight:bold; padding:2px 6px;">×</span>`
+          : '';
+
+        html += `
+          <div class="entry-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed #e2e8f0;">
+            <div>
+              <strong style="font-size:15px; color:#1e293b;">${entry.employeeName}</strong>
+              <span style="color:#d97706; font-weight:bold; margin-left:8px;">${entry.hours}h</span>
+              <br>
+              <small style="color:#64748b;">${entry.shiftLabel} • ${fmtTime(entry.start)} - ${fmtTime(entry.end)}</small>
+              ${entry.note ? `<br><small style="color:#94a3b8; font-style:italic;">"${entry.note}"</small>` : ''}
+            </div>
+            <div>
+              ${deleteBtnHtml}
+            </div>
+          </div>
+        `;
+      });
+      if (entriesList) entriesList.innerHTML = html;
+    }
+
+    // Update form elements state (render employee pickers, shift buttons, etc.)
+    renderEmployeePicker();
+  }
+
+  // HARD-GUARDED DELETE FUNCTION
+  window.deleteOvertimeEntry = async function (dateKeyStr, entryId) {
+    // 1. Double check permission in JavaScript memory
+    const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
+
+    if (!canDelete) {
+      alert('🔒 Permission Denied: You must be logged in with an approved account to delete entries.');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this overtime entry?')) return;
+
+    try {
+      if (typeof docRef !== 'undefined' && docRef) {
+        // Firestore update: Filter out the target entry ID
+        const snap = await docRef.get();
+        if (snap.exists) {
+          const remoteData = snap.data() || {};
+          const entriesMap = remoteData.entries || {};
+
+          if (entriesMap[dateKeyStr]) {
+            entriesMap[dateKeyStr] = entriesMap[dateKeyStr].filter((item) => item.id !== entryId);
+            if (entriesMap[dateKeyStr].length === 0) {
+              delete entriesMap[dateKeyStr];
+            }
+            await docRef.update({ entries: entriesMap });
+          }
+        }
+      } else {
+        // Local state fallback
+        if (data[dateKeyStr]) {
+          data[dateKeyStr] = data[dateKeyStr].filter((item) => item.id !== entryId);
+          if (data[dateKeyStr].length === 0) delete data[dateKeyStr];
+          localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(data));
+        }
       }
-      if (tab === 'admin') renderManualEditor();
-    });
-  });
+
+      // Re-render UI
+      renderCalendar();
+      renderPanel();
+    } catch (err) {
+      console.error('Error deleting entry:', err);
+      alert('Failed to delete entry: ' + err.message);
+    }
+  };
 
   function getShiftClass(shift) {
     if (shift === '1') return 'shift-1';
