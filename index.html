@@ -1552,16 +1552,6 @@ const entryRow = `
       if (roster) await saveRosterToFirebase(roster);
     });
   }
-
-// Determine if the logged-in user can edit/delete
-const canEdit = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
-
-// Render the delete button only if permitted
-const deleteBtnHtml = canEdit 
-  ? `<span class="delete-entry-btn" onclick="deleteOvertimeEntry('${dateKey}', '${entry.id}')" style="cursor:pointer; color:#dc3545;">×</span>` 
-  : '';
-
-  
   
   const saveManualLocalBtn = document.getElementById('saveManualLocalBtn');
   if (saveManualLocalBtn) {
