@@ -1019,7 +1019,7 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   }
 
   // --- FIREBASE LOGIN HANDLER ---
-  if (loginForm) {
+if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -1033,8 +1033,32 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       try {
         if (authMsg) authMsg.textContent = 'Logging in...';
 
-        // Authenticate with Firebase Auth
-        await auth.signInWithEmailAndPassword(email, password);
+        // 1. Authenticate with Firebase Auth
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // 2. Direct fetch from Firestore to guarantee state
+        const userDoc = await db.collection('users').doc(user.uid).get();
+
+        if (userDoc.exists) {
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            ...userDoc.data()
+          };
+        } else {
+          // Default fallback for admin account
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            name: 'Admin',
+            role: 'admin',
+            status: 'approved'
+          };
+        }
+
+        // 3. Immediately refresh UI permissions
+        updateAuthUI();
 
         if (loginModal) loginModal.style.display = 'none';
         loginForm.reset();
