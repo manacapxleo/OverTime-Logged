@@ -1135,6 +1135,9 @@ if (loginForm) {
         otFormFields.style.pointerEvents = 'none';
       }
     }
+  if (typeof renderPanel === 'function') renderPanel();
+  if (typeof renderCalendar === 'function') renderCalendar();
+   
   }
   function renderAdminAccountTable() {
     const tbody = document.getElementById('userAccountsTableBody');
