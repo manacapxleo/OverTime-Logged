@@ -285,67 +285,76 @@
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
 
-  let db=null, auth=null, currentUserDoc=null;
-  let firebaseReady=false;
+let db = null, auth = null, currentUser = null;
+  let firebaseReady = false;
 
   try {
-    if(firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY"){
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
       auth = firebase.auth();
       firebaseReady = true;
-      document.getElementById('syncStatus').innerText = "Firebase Connected";
+
+      const syncStatus = document.getElementById('syncStatus');
+      if (syncStatus) syncStatus.innerText = "Firebase Connected";
     }
-  } catch(e) {
+  } catch (e) {
     console.error('Firebase init failed', e);
-    document.getElementById('syncStatus').innerText = "Offline Mode";
+    const syncStatus = document.getElementById('syncStatus');
+    if (syncStatus) syncStatus.innerText = "Offline Mode";
   }
 
-auth.onAuthStateChanged(async (firebaseUser) => {
-  if (firebaseUser) {
-    try {
-      const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
-      
-      if (userDoc.exists) {
-        // Fetch live data directly from Firestore
-        currentUser = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          ...userDoc.data() // Contains live 'status' and 'role'
-        };
+  // Monitor Auth State Changes
+  if (auth) {
+    auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // 1. Fetch live user status and role from 'users' collection
+          const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+
+          if (userDoc.exists) {
+            currentUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              ...userDoc.data() // Preserves 'status' (approved/pending) and 'role' (admin/editor)
+            };
+          } else {
+            console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
+            // Default fallback if document missing
+            currentUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+          }
+
+          // 2. Optional: Fetch extra roster details if needed
+          const rosterQuery = await db.collection('rosters').where('email', '==', firebaseUser.email).get();
+          if (!rosterQuery.empty) {
+            const rosterData = rosterQuery.docs[0].data();
+            const userNameEl = document.getElementById('userName');
+            if (userNameEl) {
+              userNameEl.textContent = rosterData.name || currentUser.name || firebaseUser.email;
+            }
+          } else {
+            console.warn("No matching document found in 'rosters' for this email.");
+          }
+
+        } catch (err) {
+          console.error('Error loading user profile:', err);
+        }
       } else {
-        console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
+        currentUser = null;
       }
-    } catch (err) {
-      console.error('Error loading user profile:', err);
-    }
-  } else {
-    currentUser = null;
-  }
 
-  // Refresh UI with the live Firestore status
-  updateAuthUI();
-});
-
-    // Fetch roster document
-    const query = await db.collection('rosters').where('email', '==', user.email).get();
-    
-    if (!query.empty) {
-      const userData = query.docs[0].data();
-      
-      // Update UI elements
-      document.getElementById('userName').textContent = userData.name || user.email;
-      
-      if (userData.approved) {
-        // Show approved UI
-      } else {
-        // Show pending message
+      // 3. Update the UI & permissions dynamically across the app
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
       }
-    } else {
-      console.warn("No matching document found in 'rosters' for this email.");
-    }
+    });
   }
-});
   
   // --- Auth & Admin Tab Logic ---
   const adminTabBtn = document.getElementById('adminTabBtn');
