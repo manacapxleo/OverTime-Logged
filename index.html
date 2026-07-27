@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
@@ -109,24 +108,11 @@
       <button id="nextBtn" aria-label="Next month">&#8250;</button>
     </div>
   </div>
-
-  <!-- TAB BAR -->
-  <div class="tab-bar" style="display: flex; align-items: center; justify-content: space-between;">
-    <div style="display: flex; gap: 4px;">
-      <button class="tab-btn active" data-tab="roster">Shift Roster</button>
-      <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
-      <!-- Hidden by default until Admin logs in -->
-      <button class="tab-btn" data-tab="admin" style="display: none;">Admin</button>
-    </div>
-    
-    <!-- Auth Status / Log In Button -->
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span id="userBadge" style="display: none; font-size: 13px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #e2e8f0; color: #334155;"></span>
-      <button id="loginBtn" class="tab-btn" style="background-color: #007bff; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log In / Register</button>
-      <button id="logoutBtn" class="tab-btn" style="display: none; background-color: #dc3545; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Log Out</button>
-    </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="roster">Shift Roster</button>
+    <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
+    <button class="tab-btn" data-tab="admin">Admin / Upload</button>
   </div>
-
   <div id="rosterTab">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div class="legend">
@@ -139,7 +125,6 @@
     </div>
     <div id="rosterContainer"></div>
   </div>
-
   <div id="calendarTab" class="hidden">
     <div class="summary-bar">
       <div class="stamp"><div class="n" id="sumHours">0.0h</div><div class="l">This month</div></div>
@@ -153,60 +138,32 @@
     <div class="panel" id="panel">
       <div class="panel-head"><h2 id="panelDate">Select a date</h2><div class="tot" id="panelTotal"></div></div>
       <div class="entries" id="entriesList"></div>
-
-      <!-- Overtime Add Form -->
       <div class="add-form" id="addForm" style="display:none;">
-        <div id="otPermissionNotice" style="display:none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px;">
-          🔒 <strong>Permission Required:</strong> You need an approved account to log overtime entries.
-        </div>
-        <div id="otFormFields">
-          <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
-          <div class="field" style="flex:1 1 100%;">
-            <label>Shift</label>
-            <div class="shift-group" id="shiftGroup">
-              <button type="button" class="shift-btn" data-shift="first">First shift<span class="shift-time">12:00 AM - 8:00 AM</span></button>
-              <button type="button" class="shift-btn" data-shift="second">Second shift<span class="shift-time">8:00 AM - 4:00 PM</span></button>
-              <button type="button" class="shift-btn" data-shift="third">Third shift<span class="shift-time">4:00 PM - 12:00 AM</span></button>
-            </div>
+        <div class="field" style="flex:1 1 100%;"><label>Employee</label><div class="emp-select" id="empSelect"></div></div>
+        <div class="field" style="flex:1 1 100%;">
+          <label>Shift</label>
+          <div class="shift-group" id="shiftGroup">
+            <button type="button" class="shift-btn" data-shift="first">First shift<span class="shift-time">12:00 AM - 8:00 AM</span></button>
+            <button type="button" class="shift-btn" data-shift="second">Second shift<span class="shift-time">8:00 AM - 4:00 PM</span></button>
+            <button type="button" class="shift-btn" data-shift="third">Third shift<span class="shift-time">4:00 PM - 12:00 AM</span></button>
           </div>
-          <div class="field note"><label for="noteInput">Note (optional)</label><input type="text" id="noteInput" placeholder="e.g. Month-end closing"></div>
-          <button class="add-btn" id="addBtn">Add entry</button>
-          <div class="form-msg" id="formMsg"></div>
         </div>
+        <div class="field note"><label for="noteInput">Note (optional)</label><input type="text" id="noteInput" placeholder="e.g. Month-end closing"></div>
+        <button class="add-btn" id="addBtn">Add entry</button>
+        <div class="form-msg" id="formMsg"></div>
       </div>
     </div>
   </div>
-
   <div id="adminTab" class="hidden">
     <div class="admin-grid">
-      <div class="admin-card" style="grid-column:1/-1; background: #f8fafc; border: 1px solid #cbd5e1;">
-        <h3>User Account Approvals & Permissions</h3>
-        <p>Manage registered accounts stored in Firebase.</p>
-        
-        <div style="overflow-x: auto; margin-top: 12px;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-            <thead>
-              <tr style="border-bottom: 2px solid #cbd5e1; background: #e2e8f0;">
-                <th style="padding: 8px;">Name / Email</th>
-                <th style="padding: 8px;">Role</th>
-                <th style="padding: 8px;">Status</th>
-                <th style="padding: 8px;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="userAccountsTableBody">
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>CSV / Excel Paste Upload</h3>
-        <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong></p>
+        <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong> (one row per employee, shifts separated by commas). Use <code>RD</code> for Rest Day. First column = Department, Second = Name, rest = shifts for days 1-31.</p>
         <div class="month-selector">
           <div class="field"><label>Year</label><input type="number" id="csvYear" value="2026" min="2024" max="2030"></div>
           <div class="field"><label>Month</label><select id="csvMonth"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6" selected>July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select></div>
         </div>
-        <textarea class="csv-textarea" id="csvInput" placeholder="PH, MAITEM, 2, 2, 2, 2, RD, RD, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, RD, 2, 2, 2, 2, 2, 2, RD, RD, 1, 1, 1"></textarea>
+        <textarea class="csv-textarea" id="csvInput" placeholder="PH, MAITEM, 2, 2, 2, 2, RD, RD, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, RD, 2, 2, 2, 2, 2, 2, RD, RD, 1, 1, 1&#10;PH, DELIMA, RD, 1, 1, 1, 1, 1, RD, 3, 3, 3, 3, 3, 3, 3, RD, 2, 2, 2, 2, RD, 2, RD, RD, 1, 1, 1, 1, 1, RD, 3, 3&#10;..."></textarea>
         <div class="bulk-actions">
           <button class="add-btn" id="previewCsvBtn">Preview</button>
           <button class="add-btn success" id="saveCsvBtn">Save to Firebase</button>
@@ -215,10 +172,9 @@
         </div>
         <div class="form-msg" id="csvMsg"></div>
       </div>
-      
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>Manual Schedule Editor</h3>
-        <p>Edit shifts directly in the table below. Click a cell and type <code>1</code>, <code>2</code>, <code>3</code>, or <code>RD</code>.</p>
+        <p>Edit shifts directly in the table below. Click a cell and type <code>1</code>, <code>2</code>, <code>3</code>, or <code>RD</code>. Use the month selector above.</p>
         <div id="manualEditor"></div>
         <div class="bulk-actions">
           <button class="add-btn success" id="saveManualBtn">Save to Firebase</button>
@@ -226,56 +182,26 @@
         </div>
         <div class="form-msg" id="manualMsg"></div>
       </div>
+      <div class="admin-card">
+        <h3>How It Works</h3>
+        <p><strong>Priority:</strong> Firebase cloud data &rarr; Local browser data &rarr; Hardcoded fallback</p>
+        <p>1. <strong>Firebase:</strong> Saves to cloud for all team members to see. Requires Firestore write permissions.</p>
+        <p>2. <strong>Local:</strong> Saves only in this browser. Others won't see it.</p>
+        <p>3. <strong>Hardcoded:</strong> Built-in July &amp; August 2026 schedules as fallback.</p>
+      </div>
+      <div class="admin-card">
+        <h3>Excel to CSV Tip</h3>
+        <p>In Excel, select your schedule table (including dept/name columns), copy, and paste directly into the text area above. The app will auto-detect the format.</p>
+        <p>You can also use tab-separated values - just paste from Excel and it will work.</p>
+      </div>
     </div>
   </div>
 </div>
-
-<!-- LOGIN & REGISTER MODAL -->
-<div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
-  <div style="background-color: #ffffff; padding: 24px; border-radius: 8px; width: 340px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #333;">
-    <span id="closeLoginModal" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
-    
-    <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-      <button id="showLoginFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Log In</button>
-      <button id="showRegisterFormBtn" style="flex: 1; padding: 6px; border: none; background: none; font-weight: bold; cursor: pointer; color: #64748b;">Register</button>
-    </div>
-
-    <!-- Login Form -->
-    <form id="loginForm">
-      <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
-        <label for="loginEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
-        <input type="email" id="loginEmail" required placeholder="admin@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
-        <label for="loginPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
-        <input type="password" id="loginPassword" required placeholder="••••••••" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <button type="submit" style="width: 100%; background-color: #007bff; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Sign In</button>
-    </form>
-
-    <!-- Register Form -->
-    <form id="registerForm" style="display: none;">
-      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
-        <label for="regName" style="font-size: 14px; margin-bottom: 4px;">Full Name</label>
-        <input type="text" id="regName" required placeholder="John Doe" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <div style="margin-bottom: 12px; display: flex; flex-direction: column;">
-        <label for="regEmail" style="font-size: 14px; margin-bottom: 4px;">Email</label>
-        <input type="email" id="regEmail" required placeholder="user@apopackhouse.com" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <div style="margin-bottom: 14px; display: flex; flex-direction: column;">
-        <label for="regPassword" style="font-size: 14px; margin-bottom: 4px;">Password</label>
-        <input type="password" id="regPassword" required placeholder="••••••••" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      </div>
-      <button type="submit" style="width: 100%; background-color: #28a745; color: white; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Create Account</button>
-    </form>
-
-    <div id="authMsg" style="margin-top: 10px; font-size: 13px; text-align: center;"></div>
-  </div>
-</div>
-
 <script>
 (function(){
+  const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const ADMIN_PASSWORD = "leeyoo";
   const firebaseConfig={
     apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
     authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
@@ -285,1362 +211,10 @@
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
 
-let db = null, auth = null, currentUser = null;
-  let firebaseReady = false;
-
-  try {
-    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      auth = firebase.auth();
-      firebaseReady = true;
-
-      const syncStatus = document.getElementById('syncStatus');
-      if (syncStatus) syncStatus.innerText = "Firebase Connected";
-    }
-  } catch (e) {
-    console.error('Firebase init failed', e);
-    const syncStatus = document.getElementById('syncStatus');
-    if (syncStatus) syncStatus.innerText = "Offline Mode";
-  }
-
-  // Monitor Auth State Changes
-  if (auth) {
-    auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          // 1. Fetch live user status and role from 'users' collection
-          const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
-
-          if (userDoc.exists) {
-            currentUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              ...userDoc.data() // Preserves 'status' (approved/pending) and 'role' (admin/editor)
-            };
-          } else {
-            console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
-            // Default fallback if document missing
-            currentUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.email.split('@')[0],
-              role: 'editor',
-              status: 'pending'
-            };
-          }
-
-          // 2. Optional: Fetch extra roster details if needed
-          const rosterQuery = await db.collection('rosters').where('email', '==', firebaseUser.email).get();
-          if (!rosterQuery.empty) {
-            const rosterData = rosterQuery.docs[0].data();
-            const userNameEl = document.getElementById('userName');
-            if (userNameEl) {
-              userNameEl.textContent = rosterData.name || currentUser.name || firebaseUser.email;
-            }
-          } else {
-            console.warn("No matching document found in 'rosters' for this email.");
-          }
-
-        } catch (err) {
-          console.error('Error loading user profile:', err);
-        }
-      } else {
-        currentUser = null;
-      }
-
-      // 3. Update the UI & permissions dynamically across the app
-      if (typeof updateAuthUI === 'function') {
-        updateAuthUI();
-      }
-    });
-  }
-  
-  // --- Auth & Admin Tab Logic ---
-  const adminTabBtn = document.getElementById('adminTabBtn');
-  const loginBtn = document.getElementById('loginBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-  const userBadge = document.getElementById('userBadge');
-  const loginModal = document.getElementById('loginModal');
-  const closeLoginModal = document.getElementById('closeLoginModal');
-  const loginForm = document.getElementById('loginForm');
-  const registerForm = document.getElementById('registerForm');
-  const showLoginFormBtn = document.getElementById('showLoginFormBtn');
-  const showRegisterFormBtn = document.getElementById('showRegisterFormBtn');
-  const authMsg = document.getElementById('authMsg');
-
-  // Modal Open / Close
-  loginBtn.addEventListener('click', () => loginModal.style.display = 'flex');
-  closeLoginModal.addEventListener('click', () => loginModal.style.display = 'none');
-
-  showLoginFormBtn.addEventListener('click', () => {
-    loginForm.style.display = 'block';
-    registerForm.style.display = 'none';
-    showLoginFormBtn.style.color = '#007bff';
-    showLoginFormBtn.style.borderBottom = '2px solid #007bff';
-    showRegisterFormBtn.style.color = '#64748b';
-    showRegisterFormBtn.style.borderBottom = 'none';
-  });
-
-  showRegisterFormBtn.addEventListener('click', () => {
-    registerForm.style.display = 'block';
-    loginForm.style.display = 'none';
-    showRegisterFormBtn.style.color = '#007bff';
-    showRegisterFormBtn.style.borderBottom = '2px solid #007bff';
-    showLoginFormBtn.style.color = '#64748b';
-    showLoginFormBtn.style.borderBottom = 'none';
-  });
-
-  // User Sign-up
-  registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    authMsg.innerText = '';
-    const name = document.getElementById('regName').value;
-    const email = document.getElementById('regEmail').value;
-    const password = document.getElementById('regPassword').value;
-
-    try {
-      const res = await auth.createUserWithEmailAndPassword(email, password);
-      const isMasterAdmin = email.toLowerCase() === 'admin@apopackhouse.com';
-      
-      await db.collection('users').doc(res.user.uid).set({
-        name: name,
-        email: email,
-        role: isMasterAdmin ? 'admin' : 'editor',
-        status: isMasterAdmin ? 'approved' : 'pending',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      authMsg.style.color = 'green';
-      authMsg.innerText = 'Account registered successfully!';
-      setTimeout(() => { loginModal.style.display = 'none'; }, 1000);
-    } catch(err) {
-      authMsg.style.color = 'red';
-      authMsg.innerText = err.message;
-    }
-  });
-
-  // User Login
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    authMsg.innerText = '';
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    try {
-      await auth.signInWithEmailAndPassword(email, password);
-      authMsg.style.color = 'green';
-      authMsg.innerText = 'Logged in!';
-      setTimeout(() => { loginModal.style.display = 'none'; }, 800);
-    } catch(err) {
-      authMsg.style.color = 'red';
-      authMsg.innerText = err.message;
-    }
-  });
-
-  // User Logout
-  logoutBtn.addEventListener('click', () => {
-    auth.signOut();
-  });
-
- // Auth Observer
-  if (firebaseReady) {
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'block';
-
-        try {
-          // Fetch Live User Data from Firestore
-          const userDoc = await db.collection('users').doc(user.uid).get();
-
-          if (userDoc.exists) {
-            // Assign to BOTH global variables so all UI scripts share the same status
-            currentUserDoc = userDoc.data();
-            currentUser = {
-              uid: user.uid,
-              email: user.email,
-              ...currentUserDoc
-            };
-
-            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
-            userBadge.style.display = 'inline-block';
-
-            if (currentUser.role === 'admin') {
-              adminTabBtn.classList.remove('hidden');
-              loadUserAccountsTable();
-            } else {
-              adminTabBtn.classList.add('hidden');
-              // If viewing admin tab, force fallback to roster
-              document.getElementById('rosterTab')?.classList.remove('hidden');
-              document.getElementById('adminTab')?.classList.add('hidden');
-            }
-          } else {
-            console.warn('No Firestore document found for user UID:', user.uid);
-            currentUser = {
-              uid: user.uid,
-              email: user.email,
-              name: user.email.split('@')[0],
-              role: 'editor',
-              status: 'pending'
-            };
-            currentUserDoc = currentUser;
-          }
-        } catch (err) {
-          console.error('Error loading user profile:', err);
-        }
-      } else {
-        currentUser = null;
-        currentUserDoc = null;
-        loginBtn.style.display = 'block';
-        logoutBtn.style.display = 'none';
-        userBadge.style.display = 'none';
-        adminTabBtn.classList.add('hidden');
-        document.getElementById('rosterTab')?.classList.remove('hidden');
-        document.getElementById('adminTab')?.classList.add('hidden');
-      }
-
-      // Trigger permission and UI refresh with updated user object
-      if (typeof updateAuthUI === 'function') {
-        updateAuthUI();
-      }
-    });
-  }
-  
-  // Fetch Users List for Admin View
-  async function loadUserAccountsTable() {
-    const tbody = document.getElementById('userAccountsTableBody');
-    if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;">Loading users...</td></tr>';
-    
-    try {
-      const snap = await db.collection('users').get();
-      tbody.innerHTML = '';
-      snap.forEach((doc) => {
-        const u = doc.data();
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid #e2e8f0';
-        tr.innerHTML = `
-          <td style="padding:8px;"><strong>${u.name || 'N/A'}</strong><br><small style="color:#64748b">${u.email}</small></td>
-          <td style="padding:8px;">
-            <select onchange="updateUserRole('${doc.id}', this.value)" style="padding:4px; border-radius:4px;">
-              <option value="editor" ${u.role === 'editor' ? 'selected' : ''}>Editor</option>
-              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
-          </td>
-          <td style="padding:8px;">
-            <span style="padding: 2px 6px; border-radius:4px; font-size:12px; background:${u.status === 'approved' ? '#dcfce7' : '#fef3c7'}; color:${u.status === 'approved' ? '#166534' : '#92400e'}">
-              ${u.status || 'pending'}
-            </span>
-          </td>
-          <td style="padding:8px;">
-            <button onclick="toggleUserStatus('${doc.id}', '${u.status}')" style="padding:4px 8px; font-size:12px; cursor:pointer; background:#3b82f6; color:white; border:none; border-radius:4px;">
-              ${u.status === 'approved' ? 'Revoke' : 'Approve'}
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } catch(err) {
-      tbody.innerHTML = `<tr><td colspan="4" style="padding:10px; color:red;">Failed to load users: ${err.message}</td></tr>`;
-    }
-  }
-
-  window.toggleUserStatus = async (uid, currentStatus) => {
-    const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
-    await db.collection('users').doc(uid).update({ status: newStatus });
-    loadUserAccountsTable();
-  };
-
-  window.updateUserRole = async (uid, newRole) => {
-    await db.collection('users').doc(uid).update({ role: newRole });
-    loadUserAccountsTable();
-  };
-
-  // Tab switcher
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.dataset.tab;
-      document.getElementById('rosterTab').classList.toggle('hidden', tab !== 'roster');
-      document.getElementById('calendarTab').classList.toggle('hidden', tab !== 'calendar');
-      document.getElementById('adminTab').classList.toggle('hidden', tab !== 'admin');
-    });
-  });
-
-(function () {
-  let currentRoster = null,
-    rosterSource = 'hardcoded',
-    data = {},
-    current = new Date();
-  current.setDate(1);
-
-  let selectedDate = null,
-    selectedShift = null,
-    selectedEmployee = null,
-    parsedCsvRoster = null;
-
-  
-const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const pad = (n) => String(n).padStart(2, '0');
-  const dateKey = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
-  const rosterKey = (y, m) => `${y}-${pad(m + 1)}`;
-  const todayKey = (() => {
-    const t = new Date();
-    return dateKey(t.getFullYear(), t.getMonth(), t.getDate());
-  })();
-
-  const LOCAL_FALLBACK_KEY = 'overtime-entries';
-  const LOCAL_ROSTER_KEY = 'apo-rosters';
-
-  function timeToMinutes(t) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  }
-
-  function fmtTime(t) {
-    const [h, m] = t.split(':').map(Number);
-    const period = h >= 12 ? 'PM' : 'AM';
-    let h12 = h % 12;
-    if (h12 === 0) h12 = 12;
-    return `${h12}:${pad(m)} ${period}`;
-  }
-
-  function setStatus(text) {
-    const el = document.getElementById('syncStatus');
-    if (el) el.textContent = text;
-  }
-
-  async function loadRoster(year, month) {
-    const key = rosterKey(year, month);
-    if (typeof firebaseReady !== 'undefined' && firebaseReady && typeof rosterRef !== 'undefined' && rosterRef) {
-      try {
-        const doc = await rosterRef.doc(key).get();
-        if (doc.exists) {
-          currentRoster = doc.data().departments;
-          rosterSource = 'firebase';
-          updateSourceBadge();
-          return;
-        }
-      } catch (e) {
-        console.log('Firebase roster not found');
-      }
-    }
-    try {
-      const local = localStorage.getItem(LOCAL_ROSTER_KEY);
-      if (local) {
-        const parsed = JSON.parse(local);
-        if (parsed[key]) {
-          currentRoster = parsed[key];
-          rosterSource = 'local';
-          updateSourceBadge();
-          return;
-        }
-      }
-    } catch (e) {}
-
-    if (typeof HARDCODED_ROSTERS !== 'undefined' && HARDCODED_ROSTERS[key]) {
-      currentRoster = HARDCODED_ROSTERS[key];
-      rosterSource = 'hardcoded';
-    } else {
-      currentRoster = null;
-      rosterSource = 'none';
-    }
-    updateSourceBadge();
-  }
-
-  function updateSourceBadge() {
-    const badge = document.getElementById('rosterSource');
-    if (!badge) return;
-    badge.className = 'source-badge ' + rosterSource;
-    const labels = {
-      firebase: 'Firebase Cloud',
-      local: 'Local Browser',
-      hardcoded: 'Hardcoded',
-      none: 'No Data',
-    };
-    badge.textContent = labels[rosterSource] || 'Unknown';
-  }
-
-  function listenForChanges(onFirstLoad) {
-    if (typeof firebaseReady === 'undefined' || !firebaseReady) {
-      setStatus('Not connected - saving locally');
-      try {
-        const raw = localStorage.getItem(LOCAL_FALLBACK_KEY);
-        data = raw ? JSON.parse(raw) : {};
-      } catch (e) {
-        data = {};
-      }
-      onFirstLoad();
-      return;
-    }
-    docRef.onSnapshot(
-      (snap) => {
-        const remote = snap.exists ? snap.data() : {};
-        data = remote && remote.entries ? remote.entries : {};
-        setStatus('Synced - shared with team');
-        onFirstLoad();
-      },
-      (err) => {
-        console.error('Sync error', err);
-        setStatus('Connection issue');
-      }
-    );
-  }
-
-  async function saveData() {
-    if (typeof firebaseReady === 'undefined' || !firebaseReady) {
-      try {
-        localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(data));
-      } catch (e) {}
-      return;
-    }
-    try {
-      await docRef.set({ entries: data }, { merge: false });
-    } catch (e) {
-      setStatus('Could not save');
-      alert('Could not save to cloud.');
-    }
-  }
-
-function dayTotal(key) {
-    if (!data[key]) return 0;
-    return data[key].reduce((sum, item) => sum + (item.hours || 0), 0);
-  }
-
-  function renderPanel() {
-    const dateLabel = document.getElementById('selectedDateLabel');
-    const dayTotalEl = document.getElementById('dayTotal');
-    const entriesList = document.getElementById('entriesList');
-
-    if (!selectedDate) {
-      if (dateLabel) dateLabel.textContent = 'Select a date from the calendar';
-      if (dayTotalEl) dayTotalEl.textContent = '0h total';
-      if (entriesList) entriesList.innerHTML = '<p style="color:var(--ink-soft);">No date selected.</p>';
-      return;
-    }
-
-    // Format selected date header
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const dowStr = DOW[dateObj.getDay()];
-    const monthStr = MONTHS[m - 1];
-    if (dateLabel) dateLabel.textContent = `${dowStr}, ${monthStr} ${d}, ${y}`;
-
-    const total = dayTotal(selectedDate);
-    if (dayTotalEl) dayTotalEl.textContent = `${total}h total`;
-
-    // CHECK PERMISSIONS: Only approved users or admins can see/use delete buttons
-    const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
-
-    const dayEntries = data[selectedDate] || [];
-    if (dayEntries.length === 0) {
-      if (entriesList) entriesList.innerHTML = '<p style="color:var(--ink-soft); font-size:14px; margin-top:8px;">No overtime logged for this day.</p>';
-    } else {
-      let html = '';
-      dayEntries.forEach((entry) => {
-        // Only generate the '×' button HTML if permission is granted
-        const deleteBtnHtml = canDelete
-          ? `<span class="delete-entry-btn" onclick="deleteOvertimeEntry('${selectedDate}', '${entry.id}')" title="Delete entry" style="cursor:pointer; color:#dc3545; font-size:16px; font-weight:bold; padding:2px 6px;">×</span>`
-          : '';
-
-        html += `
-          <div class="entry-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px dashed #e2e8f0;">
-            <div>
-              <strong style="font-size:15px; color:#1e293b;">${entry.employeeName}</strong>
-              <span style="color:#d97706; font-weight:bold; margin-left:8px;">${entry.hours}h</span>
-              <br>
-              <small style="color:#64748b;">${entry.shiftLabel} • ${fmtTime(entry.start)} - ${fmtTime(entry.end)}</small>
-              ${entry.note ? `<br><small style="color:#94a3b8; font-style:italic;">"${entry.note}"</small>` : ''}
-            </div>
-            <div>
-              ${deleteBtnHtml}
-            </div>
-          </div>
-        `;
-      });
-      if (entriesList) entriesList.innerHTML = html;
-    }
-
-    // Update form elements state (render employee pickers, shift buttons, etc.)
-    renderEmployeePicker();
-  }
-
-  // HARD-GUARDED DELETE FUNCTION
-  window.deleteOvertimeEntry = async function (dateKeyStr, entryId) {
-    // 1. Double check permission in JavaScript memory
-    const canDelete = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
-
-    if (!canDelete) {
-      alert('🔒 Permission Denied: You must be logged in with an approved account to delete entries.');
-      return;
-    }
-
-    if (!confirm('Are you sure you want to delete this overtime entry?')) return;
-
-    try {
-      if (typeof docRef !== 'undefined' && docRef) {
-        // Firestore update: Filter out the target entry ID
-        const snap = await docRef.get();
-        if (snap.exists) {
-          const remoteData = snap.data() || {};
-          const entriesMap = remoteData.entries || {};
-
-          if (entriesMap[dateKeyStr]) {
-            entriesMap[dateKeyStr] = entriesMap[dateKeyStr].filter((item) => item.id !== entryId);
-            if (entriesMap[dateKeyStr].length === 0) {
-              delete entriesMap[dateKeyStr];
-            }
-            await docRef.update({ entries: entriesMap });
-          }
-        }
-      } else {
-        // Local state fallback
-        if (data[dateKeyStr]) {
-          data[dateKeyStr] = data[dateKeyStr].filter((item) => item.id !== entryId);
-          if (data[dateKeyStr].length === 0) delete data[dateKeyStr];
-          localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(data));
-        }
-      }
-
-      // Re-render UI
-      renderCalendar();
-      renderPanel();
-    } catch (err) {
-      console.error('Error deleting entry:', err);
-      alert('Failed to delete entry: ' + err.message);
-    }
-  };
-
-  function getShiftClass(shift) {
-    if (shift === '1') return 'shift-1';
-    if (shift === '2') return 'shift-2';
-    if (shift === '3') return 'shift-3';
-    if (shift === 'RD') return 'shift-rd';
-    return '';
-  }
-
-  function renderRoster() {
-    const container = document.getElementById('rosterContainer');
-    const y = current.getFullYear(),
-      m = current.getMonth();
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const monthLabel = document.getElementById('monthLabel');
-    if (monthLabel && typeof MONTHS !== 'undefined') {
-      monthLabel.textContent = `${MONTHS[m]} ${y}`;
-    }
-
-    if (!currentRoster) {
-      container.innerHTML =
-        '<div class="panel"><p style="color:var(--ink-soft);">No schedule for this month. Use Admin tab to upload.</p></div>';
-      return;
-    }
-
-    let html = '';
-    for (const [dept, employees] of Object.entries(currentRoster)) {
-      html += `<div class="dept"><div class="dept-header">${dept}</div><div class="schedule-table-wrap"><table class="schedule-table"><thead><tr><th class="name-col">Name</th>`;
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(y, m, d);
-        const dow = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const isToday = dateKey(y, m, d) === todayKey;
-        html += `<th style="${isToday ? 'background:var(--amber);color:var(--paper-raised);' : ''}">${d}<br><span style="font-weight:400;font-size:10px;">${dow}</span></th>`;
-      }
-      html += `</tr></thead><tbody>`;
-      for (const emp of employees) {
-        html += `<tr data-emp="${emp.name}" data-dept="${dept}"><td class="name-col">${emp.name}</td>`;
-        for (let d = 0; d < daysInMonth; d++) {
-          const shift = emp.shifts[d] || '';
-          const key = dateKey(y, m, d + 1);
-          const isToday = key === todayKey;
-          html += `<td class="${getShiftClass(shift)}" style="${isToday ? 'outline:2px solid var(--amber);outline-offset:-2px;' : ''}" data-day="${d + 1}" data-shift="${shift}">${shift}</td>`;
-        }
-        html += `</tr>`;
-      }
-      html += `</tbody></table></div></div>`;
-    }
-    container.innerHTML = html;
-    container.querySelectorAll('.schedule-table tbody tr').forEach((row) => {
-      row.addEventListener('click', (e) => {
-        if (e.target.tagName === 'TD' && e.target.dataset.day) {
-          const day = parseInt(e.target.dataset.day);
-          const empName = row.dataset.emp;
-          selectedDate = dateKey(current.getFullYear(), current.getMonth(), day);
-          selectedEmployee = empName;
-          tabBtns.forEach((b) => b.classList.remove('active'));
-          const calBtn = document.querySelector('.tab-btn[data-tab="calendar"]');
-          if (calBtn) calBtn.classList.add('active');
-          if (rosterTab) rosterTab.classList.add('hidden');
-          if (calendarTab) calendarTab.classList.remove('hidden');
-          if (adminTab) adminTab.classList.add('hidden');
-          renderCalendar();
-          renderPanel();
-        }
-      });
-    });
-  }
-
-  function renderCalendar() {
-    const y = current.getFullYear(),
-      m = current.getMonth();
-    const monthLabel = document.getElementById('monthLabel');
-    if (monthLabel && typeof MONTHS !== 'undefined') {
-      monthLabel.textContent = `${MONTHS[m]} ${y}`;
-    }
-    const firstDow = new Date(y, m, 1).getDay();
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const body = document.getElementById('calendarBody');
-    if (!body) return;
-
-    body.innerHTML = '';
-    let html = '';
-    const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
-    for (let i = 0; i < totalCells; i++) {
-      if (i % 7 === 0) html += '<div class="week-row">';
-      const dayNum = i - firstDow + 1;
-      if (dayNum < 1 || dayNum > daysInMonth) {
-        html += `<div class="day-cell empty"></div>`;
-      } else {
-        const key = dateKey(y, m, dayNum);
-        const total = dayTotal(key);
-        const isToday = key === todayKey;
-        const isSelected = key === selectedDate;
-        html += `<div class="day-cell${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" data-key="${key}" data-day="${dayNum}"><span class="num">${dayNum}</span>${total > 0 ? `<span class="tally">${total}h</span>` : ''}</div>`;
-      }
-      if (i % 7 === 6) html += '</div>';
-    }
-    body.innerHTML = html;
-    body.querySelectorAll('.day-cell:not(.empty)').forEach((cell) => {
-      cell.addEventListener('click', () => {
-        selectedDate = cell.dataset.key;
-        renderCalendar();
-        renderPanel();
-      });
-    });
-    renderSummary();
-  }
-
-  function renderSummary() {
-    const y = current.getFullYear(),
-      m = current.getMonth();
-    const prefix = `${y}-${pad(m + 1)}-`;
-    let totalHours = 0,
-      days = 0,
-      entries = 0;
-    Object.keys(data).forEach((key) => {
-      if (key.startsWith(prefix) && data[key].length) {
-        days++;
-        entries += data[key].length;
-        totalHours += dayTotal(key);
-      }
-    });
-    const sumHours = document.getElementById('sumHours');
-    const sumDays = document.getElementById('sumDays');
-    const sumEntries = document.getElementById('sumEntries');
-    if (sumHours) sumHours.textContent = `${Math.round(totalHours * 100) / 100}h`;
-    if (sumDays) sumDays.textContent = days;
-    if (sumEntries) sumEntries.textContent = entries;
-  }
-
-  const SHIFTS = {
-    first: { label: 'First shift', start: '00:00', end: '08:00', hours: 8 },
-    second: { label: 'Second shift', start: '08:00', end: '16:00', hours: 8 },
-    third: { label: 'Third shift', start: '16:00', end: '00:00', hours: 8 },
-  };
-
-  function getAllEmployees() {
-    const emps = [];
-    if (currentRoster) {
-      for (const [dept, employees] of Object.entries(currentRoster)) {
-        employees.forEach((e) => emps.push({ name: e.name, dept }));
-      }
-    }
-    return emps;
-  }
-
-  function renderPanel() {
-    const addForm = document.getElementById('addForm'),
-      panelDate = document.getElementById('panelDate'),
-      panelTotal = document.getElementById('panelTotal'),
-      entriesList = document.getElementById('entriesList'),
-      empSelect = document.getElementById('empSelect');
-
-    if (!selectedDate) {
-      if (panelDate) panelDate.textContent = 'Select a date';
-      if (panelTotal) panelTotal.textContent = '';
-      if (entriesList) entriesList.innerHTML = '';
-      if (empSelect) empSelect.innerHTML = '';
-      if (addForm) addForm.style.display = 'none';
-      return;
-    }
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const dt = new Date(y, m - 1, d);
-    if (panelDate)
-      panelDate.textContent = dt.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-
-    const list = data[selectedDate] || [];
-    const total = dayTotal(selectedDate);
-    if (panelTotal) panelTotal.textContent = list.length ? `${total}h total` : '';
-
-    if (entriesList) {
-      if (list.length === 0) {
-        entriesList.innerHTML = '<div class="empty-note">No overtime logged for this date yet.</div>';
-      } else {
-        entriesList.innerHTML = list
-          .map(
-            (e) =>
-              `<div class="entry-row"><span class="entry-time">${
-                e.employeeName || 'Unknown'
-              }<br><span style="font-weight:400;font-size:12px;color:var(--ink-soft);">${
-                e.shiftLabel || ''
-              } &middot; ${fmtTime(e.start)} - ${fmtTime(e.end)}</span></span><span class="entry-hours">${
-                e.hours
-              }h</span><span class="entry-note">${
-                e.note ? escapeHtml(e.note) : ''
-              }</span><button class="entry-del" data-id="${
-                e.id
-              }" aria-label="Delete entry">&times;</button></div>`
-          )
-          .join('');
-        entriesList.querySelectorAll('.entry-del').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            data[selectedDate] = data[selectedDate].filter((e) => e.id !== btn.dataset.id);
-            if (data[selectedDate].length === 0) delete data[selectedDate];
-            await saveData();
-            renderCalendar();
-            renderPanel();
-          });
-        });
-      }
-    }
-
-    if (empSelect) {
-      const allEmps = getAllEmployees();
-      if (allEmps.length === 0) {
-        empSelect.innerHTML =
-          '<span style="color:var(--ink-soft);font-size:12px;">No employees loaded.</span>';
-      } else {
-        empSelect.innerHTML = allEmps
-          .map(
-            (e) =>
-              `<button type="button" class="emp-chip${
-                selectedEmployee === e.name ? ' active' : ''
-              }" data-name="${e.name}">${
-                e.name
-              } <span style="opacity:0.6;font-size:10px;"></span></button>`
-          )
-          .join('');
-        empSelect.querySelectorAll('.emp-chip').forEach((chip) => {
-          chip.addEventListener('click', () => {
-            selectedEmployee = chip.dataset.name;
-            renderPanel();
-          });
-        });
-      }
-    }
-
-    if (addForm) addForm.style.display = 'flex';
-    const formMsg = document.getElementById('formMsg');
-    if (formMsg) formMsg.textContent = '';
-    selectedShift = null;
-    const shiftBtns = document.querySelectorAll('.shift-btn');
-    shiftBtns.forEach((btn) => {
-      btn.classList.remove('active');
-      btn.onclick = () => {
-        selectedShift = btn.dataset.shift;
-        shiftBtns.forEach((b) => b.classList.toggle('active', b === btn));
-      };
-    });
-  }
-
-  function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s;
-    return div.innerHTML;
-  }
-
-
-// Account Store & Current Session State
-  let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
-    { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' },
-  ];
-  
-  // FIX: Start with currentUser as null on page load. 
-  // Let Firebase Auth onAuthStateChanged populate it with live data from Firestore.
-  let currentUser = null;
-
-  function saveAccounts() {
-    localStorage.setItem('apo_accounts', JSON.stringify(accounts));
-  }
-
- // Selected DOM Elements
-  const loginModal = document.getElementById('loginModal'),
-    loginBtn = document.getElementById('loginBtn'),
-    logoutBtn = document.getElementById('logoutBtn'),
-    closeLoginModal = document.getElementById('closeLoginModal'),
-    showLoginFormBtn = document.getElementById('showLoginFormBtn'),
-    showRegisterFormBtn = document.getElementById('showRegisterFormBtn'),
-    loginForm = document.getElementById('loginForm'),
-    registerForm = document.getElementById('registerForm'),
-    authMsg = document.getElementById('authMsg'),
-    userBadge = document.getElementById('userBadge');
-
-  // Modal Toggle Handlers
-  if (loginBtn && loginModal) loginBtn.addEventListener('click', () => { loginModal.style.display = 'flex'; });
-  if (closeLoginModal && loginModal) closeLoginModal.addEventListener('click', () => { loginModal.style.display = 'none'; });
-
-  if (showLoginFormBtn && showRegisterFormBtn && loginForm && registerForm) {
-    showLoginFormBtn.addEventListener('click', () => {
-      loginForm.style.display = 'block';
-      registerForm.style.display = 'none';
-      showLoginFormBtn.style.color = '#007bff';
-      showLoginFormBtn.style.borderBottom = '2px solid #007bff';
-      showRegisterFormBtn.style.color = '#64748b';
-      showRegisterFormBtn.style.borderBottom = 'none';
-      if (authMsg) authMsg.textContent = '';
-    });
-
-    showRegisterFormBtn.addEventListener('click', () => {
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'block';
-      showRegisterFormBtn.style.color = '#28a745';
-      showRegisterFormBtn.style.borderBottom = '2px solid #28a745';
-      showLoginFormBtn.style.color = '#64748b';
-      showLoginFormBtn.style.borderBottom = 'none';
-      if (authMsg) authMsg.textContent = '';
-    });
-  }
-
-  // --- FIREBASE REGISTRATION HANDLER ---
-  if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('regName').value.trim();
-      const email = document.getElementById('regEmail').value.trim().toLowerCase();
-      const password = document.getElementById('regPassword').value;
-
-      if (!auth || !db) {
-        alert('Firebase is not initialized yet. Check your config.');
-        return;
-      }
-
-      try {
-        if (authMsg) authMsg.textContent = 'Registering account...';
-
-        // 1. Create User in Firebase Authentication
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        const uid = userCredential.user.uid;
-
-        // 2. Save User Record in Firestore 'users' collection
-        await db.collection('users').doc(uid).set({
-          name: name,
-          email: email,
-          role: 'editor',
-          status: 'pending',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        if (authMsg) {
-          authMsg.style.color = '#28a745';
-          authMsg.textContent = 'Registration successful! Wait for Admin approval.';
-        }
-        registerForm.reset();
-      } catch (error) {
-        if (authMsg) {
-          authMsg.style.color = '#dc3545';
-          authMsg.textContent = error.message;
-        }
-      }
-    });
-  }
-
-  // --- FIREBASE LOGIN HANDLER ---
-if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-      const password = document.getElementById('loginPassword').value;
-
-      if (!auth) {
-        alert('Firebase Auth is not initialized.');
-        return;
-      }
-
-      try {
-        if (authMsg) authMsg.textContent = 'Logging in...';
-
-        // 1. Authenticate with Firebase Auth
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-
-        // 2. Direct fetch from Firestore to guarantee state
-        const userDoc = await db.collection('users').doc(user.uid).get();
-
-        if (userDoc.exists) {
-          currentUser = {
-            uid: user.uid,
-            email: user.email,
-            ...userDoc.data()
-          };
-        } else {
-          // Default fallback for admin account
-          currentUser = {
-            uid: user.uid,
-            email: user.email,
-            name: 'Admin',
-            role: 'admin',
-            status: 'approved'
-          };
-        }
-
-        // 3. Immediately refresh UI permissions
-        updateAuthUI();
-
-        if (loginModal) loginModal.style.display = 'none';
-        loginForm.reset();
-        if (authMsg) authMsg.textContent = '';
-      } catch (error) {
-        if (authMsg) {
-          authMsg.style.color = '#dc3545';
-          authMsg.textContent = 'Invalid email or password.';
-        }
-      }
-    });
-  }
-
-  // --- FIREBASE LOGOUT HANDLER ---
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      if (auth) {
-        auth.signOut();
-      }
-    });
-  }
- function updateAuthUI() {
-    const otPermissionNotice = document.getElementById('otPermissionNotice');
-    const otFormFields = document.getElementById('otFormFields');
-    
-    // Select the Admin Tab button
-    const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
-
-    if (currentUser) {
-      if (loginBtn) loginBtn.style.display = 'none';
-      if (logoutBtn) logoutBtn.style.display = 'inline-block';
-      if (userBadge) {
-        userBadge.style.display = 'inline-block';
-        userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
-      }
-
-      // SHOW ADMIN TAB BUTTON IF USER IS ADMIN
-      if (adminTabBtn) {
-        adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-      }
-
-      if (currentUser.role === 'admin' || currentUser.status === 'approved') {
-        if (otPermissionNotice) otPermissionNotice.style.display = 'none';
-        if (otFormFields) {
-          otFormFields.style.opacity = '1';
-          otFormFields.style.pointerEvents = 'auto';
-        }
-      } else {
-        if (otPermissionNotice) {
-          otPermissionNotice.style.display = 'block';
-          otPermissionNotice.innerHTML =
-            '⌛ <strong>Approval Pending:</strong> Your account is registered, but requires Admin approval before you can edit overtime.';
-        }
-        if (otFormFields) {
-          otFormFields.style.opacity = '0.4';
-          otFormFields.style.pointerEvents = 'none';
-        }
-      }
-    } else {
-      if (loginBtn) loginBtn.style.display = 'inline-block';
-      if (logoutBtn) logoutBtn.style.display = 'none';
-      if (userBadge) userBadge.style.display = 'none';
-
-      // HIDE ADMIN TAB BUTTON WHEN LOGGED OUT
-      if (adminTabBtn) adminTabBtn.style.display = 'none';
-
-      if (otPermissionNotice) {
-        otPermissionNotice.style.display = 'block';
-        otPermissionNotice.innerHTML =
-          '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
-      }
-      if (otFormFields) {
-        otFormFields.style.opacity = '0.4';
-        otFormFields.style.pointerEvents = 'none';
-      }
-    }
-  if (typeof renderPanel === 'function') renderPanel();
-  if (typeof renderCalendar === 'function') renderCalendar();
-   
-  }
-  function renderAdminAccountTable() {
-    const tbody = document.getElementById('userAccountsTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    accounts.forEach((acc, index) => {
-      if (acc.role === 'admin') return;
-
-      const tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid #e2e8f0';
-
-      const statusBadge =
-        acc.status === 'approved'
-          ? '<span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;">Approved</span>'
-          : '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:12px;">Pending</span>';
-
-      tr.innerHTML = `
-        <td style="padding:8px;"><strong>${acc.name}</strong><br><small style="color:#64748b;">${acc.email}</small></td>
-        <td style="padding:8px;">Editor</td>
-        <td style="padding:8px;">${statusBadge}</td>
-        <td style="padding:8px;">
-          ${
-            acc.status === 'pending'
-              ? `<button class="btn-approve" data-index="${index}" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Approve</button>`
-              : `<button class="btn-revoke" data-index="${index}" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Revoke</button>`
-          }
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    tbody.querySelectorAll('.btn-approve').forEach((btn) => {
-      btn.addEventListener('click', () => window.approveUser(parseInt(btn.dataset.index)));
-    });
-    tbody.querySelectorAll('.btn-revoke').forEach((btn) => {
-      btn.addEventListener('click', () => window.rejectUser(parseInt(btn.dataset.index)));
-    });
-  }
-
-  window.approveUser = function (index) {
-    accounts[index].status = 'approved';
-    saveAccounts();
-    renderAdminAccountTable();
-    if (currentUser && currentUser.email === accounts[index].email) {
-      currentUser.status = 'approved';
-      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
-      updateAuthUI();
-    }
-  };
-
-  window.rejectUser = function (index) {
-    accounts[index].status = 'pending';
-    saveAccounts();
-    renderAdminAccountTable();
-    if (currentUser && currentUser.email === accounts[index].email) {
-      currentUser.status = 'pending';
-      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
-      updateAuthUI();
-    }
-  };
-
-  window.deleteOvertimeEntry = async function (dateKey, entryId) {
-  // Security Check: Block if not logged in or not approved
-  const isAllowed = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
-
-
-// 2. Only generate the "×" HTML string if the user is allowed
-const deleteButtonHtml = isAllowedToEdit
-  ? `<span class="delete-btn" onclick="deleteOvertimeEntry('${dateKey}', '${entry.id}')" style="cursor:pointer; color:#dc3545; font-weight:bold;">×</span>`
-  : '';
-
-// 3. Inject deleteButtonHtml into your entry row template:
-const entryRow = `
-  <div class="entry-item" style="display:flex; justify-content:space-between; align-items:center;">
-    <div>
-      <strong>${escapeHtml(entry.employeeName)}</strong> <span style="color:#d97706; font-weight:bold;">${entry.hours}h</span><br>
-      <small style="color:#64748b;">${entry.shiftLabel} • ${entry.start} - ${entry.end}</small>
-    </div>
-    <div>
-      ${deleteButtonHtml}
-    </div>
-  </div>
-`;
-    
-  if (!isAllowed) {
-    alert('Permission Denied: Only approved accounts can delete overtime entries.');
-    return;
-  }
-
-  if (!confirm('Are you sure you want to delete this entry?')) return;
-
-  try {
-    // Read current data array
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) return;
-
-    const data = docSnap.data();
-    const entries = data.entries || {};
-
-    if (entries[dateKey]) {
-      // Filter out the deleted entry ID
-      entries[dateKey] = entries[dateKey].filter((item) => item.id !== entryId);
-
-      // If array is empty for that date, remove the key
-      if (entries[dateKey].length === 0) {
-        delete entries[dateKey];
-      }
-
-      // Update Firestore database
-      await docRef.update({ entries: entries });
-    }
-  } catch (error) {
-    console.error('Error deleting entry:', error);
-    alert('Failed to delete entry: ' + error.message);
-  }
-};
-
-  updateAuthUI();
-  renderAdminAccountTable();
-
-  const addBtn = document.getElementById('addBtn');
-  if (addBtn) {
-    addBtn.addEventListener('click', async () => {
-      if (!selectedDate) return;
-      const note = document.getElementById('noteInput').value.trim();
-      const msg = document.getElementById('formMsg');
-      if (!selectedEmployee) {
-        if (msg) msg.textContent = 'Select an employee first.';
-        return;
-      }
-      if (!selectedShift) {
-        if (msg) msg.textContent = 'Choose a shift first.';
-        return;
-      }
-      const shift = SHIFTS[selectedShift];
-      if (!data[selectedDate]) data[selectedDate] = [];
-      const alreadyLogged = data[selectedDate].some(
-        (e) => e.employeeName === selectedEmployee && e.shift === selectedShift
-      );
-      if (alreadyLogged) {
-        if (msg) msg.textContent = `${selectedEmployee} already has ${shift.label} logged.`;
-        return;
-      }
-      data[selectedDate].push({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        employeeName: selectedEmployee,
-        shift: selectedShift,
-        shiftLabel: shift.label,
-        start: shift.start,
-        end: shift.end,
-        hours: shift.hours,
-        note,
-      });
-      data[selectedDate].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-      await saveData();
-      document.getElementById('noteInput').value = '';
-      renderCalendar();
-      renderPanel();
-    });
-  }
-
-  const prevBtn = document.getElementById('prevBtn');
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
-      current.setMonth(current.getMonth() - 1);
-      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-        if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
-        else renderRoster();
-      });
-    });
-  }
-
-  const nextBtn = document.getElementById('nextBtn');
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      current.setMonth(current.getMonth() + 1);
-      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-        if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
-        else renderRoster();
-      });
-    });
-  }
-
-  function parseCsvInput(text) {
-    const lines = text.trim().split('\n').filter((l) => l.trim());
-    const roster = {};
-    for (const line of lines) {
-      const parts = line.split(/[,\t]+/).map((p) => p.trim().toUpperCase());
-      if (parts.length < 3) continue;
-      const dept = parts[0],
-        name = parts[1],
-        shifts = parts.slice(2);
-      if (!roster[dept]) roster[dept] = [];
-      roster[dept].push({ name, shifts });
-    }
-    return Object.keys(roster).length > 0 ? roster : null;
-  }
-
-  const previewCsvBtn = document.getElementById('previewCsvBtn');
-  if (previewCsvBtn) {
-    previewCsvBtn.addEventListener('click', () => {
-      const text = document.getElementById('csvInput').value;
-      const msg = document.getElementById('csvMsg');
-      parsedCsvRoster = parseCsvInput(text);
-      if (!parsedCsvRoster) {
-        if (msg) {
-          msg.textContent = 'Could not parse. Format: DEPT, NAME, shift1, shift2, ...';
-          msg.className = 'form-msg';
-        }
-        return;
-      }
-      renderManualEditor(parsedCsvRoster);
-      if (msg) {
-        msg.textContent = `Parsed ${Object.values(parsedCsvRoster).flat().length} employees. Review below, then Save.`;
-        msg.className = 'form-msg success';
-      }
-    });
-  }
-
-  const saveCsvBtn = document.getElementById('saveCsvBtn');
-  if (saveCsvBtn) {
-    saveCsvBtn.addEventListener('click', async () => {
-      if (!parsedCsvRoster) {
-        const msg = document.getElementById('csvMsg');
-        if (msg) msg.textContent = 'Preview first.';
-        return;
-      }
-      await saveRosterToFirebase(parsedCsvRoster);
-    });
-  }
-
-  const saveLocalBtn = document.getElementById('saveLocalBtn');
-  if (saveLocalBtn) {
-    saveLocalBtn.addEventListener('click', () => {
-      if (!parsedCsvRoster) {
-        const msg = document.getElementById('csvMsg');
-        if (msg) msg.textContent = 'Preview first.';
-        return;
-      }
-      saveRosterToLocal(parsedCsvRoster);
-    });
-  }
-
-  const clearLocalBtn = document.getElementById('clearLocalBtn');
-  if (clearLocalBtn) {
-    clearLocalBtn.addEventListener('click', () => {
-      localStorage.removeItem(LOCAL_ROSTER_KEY);
-      const msg = document.getElementById('csvMsg');
-      if (msg) {
-        msg.textContent = 'Local roster data cleared.';
-        msg.className = 'form-msg success';
-      }
-      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-        if (rosterTab && !rosterTab.classList.contains('hidden')) renderRoster();
-      });
-    });
-  }
-
-  async function saveRosterToFirebase(rosterData) {
-    const msg = document.getElementById('csvMsg');
-    if (typeof firebaseReady === 'undefined' || !firebaseReady) {
-      if (msg) msg.textContent = 'Firebase not connected. Saving locally...';
-      saveRosterToLocal(rosterData);
-      return;
-    }
-    const year = document.getElementById('csvYear').value;
-    const month = parseInt(document.getElementById('csvMonth').value);
-    const key = rosterKey(year, month);
-    try {
-      await rosterRef.doc(key).set({ departments: rosterData, updatedAt: new Date().toISOString() });
-      if (msg && typeof MONTHS !== 'undefined') {
-        msg.textContent = `Saved to Firebase for ${MONTHS[month]} ${year}!`;
-        msg.className = 'form-msg success';
-      }
-      currentRoster = rosterData;
-      rosterSource = 'firebase';
-      updateSourceBadge();
-    } catch (e) {
-      if (msg) {
-        msg.textContent = 'Failed: ' + e.message;
-        msg.className = 'form-msg';
-      }
-    }
-  }
-
-  function saveRosterToLocal(rosterData) {
-    const msg = document.getElementById('csvMsg');
-    const year = document.getElementById('csvYear').value;
-    const month = parseInt(document.getElementById('csvMonth').value);
-    const key = rosterKey(year, month);
-    try {
-      const existing = JSON.parse(localStorage.getItem(LOCAL_ROSTER_KEY) || '{}');
-      existing[key] = rosterData;
-      localStorage.setItem(LOCAL_ROSTER_KEY, JSON.stringify(existing));
-      if (msg && typeof MONTHS !== 'undefined') {
-        msg.textContent = `Saved locally for ${MONTHS[month]} ${year}.`;
-        msg.className = 'form-msg success';
-      }
-      currentRoster = rosterData;
-      rosterSource = 'local';
-      updateSourceBadge();
-    } catch (e) {
-      if (msg) {
-        msg.textContent = 'Failed to save locally.';
-        msg.className = 'form-msg';
-      }
-    }
-  }
-
-  function renderManualEditor(previewRoster) {
-    const container = document.getElementById('manualEditor');
-    if (!container) return;
-
-    const roster = previewRoster || currentRoster;
-    if (!roster) {
-      container.innerHTML =
-        '<p style="color:var(--ink-soft);">No roster data to edit. Upload CSV or navigate to a month with data.</p>';
-      return;
-    }
-    const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
-    let html =
-      '<div style="overflow-x:auto;"><table class="admin-table"><thead><tr><th>Dept</th><th>Name</th>';
-    for (let d = 1; d <= daysInMonth; d++) html += `<th>${d}</th>`;
-    html += '</tr></thead><tbody>';
-    for (const [dept, employees] of Object.entries(roster)) {
-      for (const emp of employees) {
-        html += `<tr data-dept="${dept}" data-name="${emp.name}"><td>${dept}</td><td>${emp.name}</td>`;
-        for (let d = 0; d < daysInMonth; d++) {
-          const shift = emp.shifts[d] || '';
-          html += `<td><input type="text" value="${shift}" data-day="${d}" maxlength="2" style="width:28px;text-align:center;"></td>`;
-        }
-        html += '</tr>';
-      }
-    }
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-    container.querySelectorAll('input[data-day]').forEach((input) => {
-      input.addEventListener('change', (e) => {
-        const row = e.target.closest('tr');
-        const dept = row.dataset.dept;
-        const name = row.dataset.name;
-        const day = parseInt(e.target.dataset.day);
-        const val = e.target.value.trim().toUpperCase();
-        if (!['1', '2', '3', 'RD', ''].includes(val)) {
-          e.target.value = '';
-          return;
-        }
-        if (!roster[dept]) return;
-        const emp = roster[dept].find((x) => x.name === name);
-        if (emp) {
-          emp.shifts[day] = val;
-        }
-      });
-    });
-  }
-  
   let db=null,docRef=null,rosterRef=null,firebaseReady=false;
   try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
- const HARDCODED_ROSTERS={
+
+  const HARDCODED_ROSTERS={
     '2026-07':{
       'PH':[{name:'MAITEM',shifts:['2','2','2','2','RD','RD','1','1','1','1','1','1','1','1','1','1','1','1','1','RD','2','2','2','2','2','2','RD','RD','1','1','1']},{name:'DELIMA',shifts:['RD','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','2','2','2','2','RD','2','RD','RD','1','1','1','1','1','RD','3','3']},{name:'SANCHEZ',shifts:['1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','RD','RD','2']},{name:'BOLANTE',shifts:['3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD']}],
       'PPH':[{name:'CANTILLAS',shifts:['2','2','2','2','2','RD','RD','1','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','2','RD','RD','1','1']},{name:'LABANAN',shifts:['RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3']},{name:'MISA',shifts:['1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2']},{name:'MAÑACAP',shifts:['3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD']}],
@@ -1655,51 +229,130 @@ const entryRow = `
     }
   };
 
-  
-  const saveManualBtn = document.getElementById('saveManualBtn');
-  if (saveManualBtn) {
-    saveManualBtn.addEventListener('click', async () => {
-      const roster = extractFromEditor();
-      if (roster) await saveRosterToFirebase(roster);
-    });
-  }
-  
-  const saveManualLocalBtn = document.getElementById('saveManualLocalBtn');
-  if (saveManualLocalBtn) {
-    saveManualLocalBtn.addEventListener('click', () => {
-      const roster = extractFromEditor();
-      if (roster) saveRosterToLocal(roster);
-    });
+  let currentRoster=null,rosterSource='hardcoded',data={},current=new Date();current.setDate(1);
+  let selectedDate=null,selectedShift=null,selectedEmployee=null,parsedCsvRoster=null;
+  const pad=n=>String(n).padStart(2,'0');
+  const dateKey=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+  const rosterKey=(y,m)=>`${y}-${pad(m+1)}`;
+  const todayKey=(()=>{const t=new Date();return dateKey(t.getFullYear(),t.getMonth(),t.getDate());})();
+  const LOCAL_FALLBACK_KEY='overtime-entries',LOCAL_ROSTER_KEY='apo-rosters';
+
+  function timeToMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+  function fmtTime(t){const[h,m]=t.split(':').map(Number);const period=h>=12?'PM':'AM';let h12=h%12;if(h12===0)h12=12;return`${h12}:${pad(m)} ${period}`;}
+  function setStatus(text){const el=document.getElementById('syncStatus');if(el)el.textContent=text;}
+
+  async function loadRoster(year,month){
+    const key=rosterKey(year,month);
+    if(firebaseReady&&rosterRef){try{const doc=await rosterRef.doc(key).get();if(doc.exists){currentRoster=doc.data().departments;rosterSource='firebase';updateSourceBadge();return;}}catch(e){console.log('Firebase roster not found');}}
+    try{const local=localStorage.getItem(LOCAL_ROSTER_KEY);if(local){const parsed=JSON.parse(local);if(parsed[key]){currentRoster=parsed[key];rosterSource='local';updateSourceBadge();return;}}}catch(e){}
+    if(HARDCODED_ROSTERS[key]){currentRoster=HARDCODED_ROSTERS[key];rosterSource='hardcoded';}else{currentRoster=null;rosterSource='none';}
+    updateSourceBadge();
   }
 
-  function extractFromEditor() {
-    const container = document.getElementById('manualEditor');
-    if (!container) return null;
-    const table = container.querySelector('table');
-    if (!table) return null;
-    const roster = {};
-    table.querySelectorAll('tbody tr').forEach((row) => {
-      const dept = row.dataset.dept;
-      const name = row.dataset.name;
-      if (!roster[dept]) roster[dept] = [];
-      const shifts = [];
-      row.querySelectorAll('input[data-day]').forEach((input) => {
-        shifts.push(input.value.trim().toUpperCase() || '');
-      });
-      roster[dept].push({ name, shifts });
-    });
-    return roster;
+  function updateSourceBadge(){const badge=document.getElementById('rosterSource');if(!badge)return;badge.className='source-badge '+rosterSource;const labels={firebase:'Firebase Cloud',local:'Local Browser',hardcoded:'Hardcoded',none:'No Data'};badge.textContent=labels[rosterSource]||'Unknown';}
+
+  function listenForChanges(onFirstLoad){
+    if(!firebaseReady){setStatus('Not connected - saving locally');try{const raw=localStorage.getItem(LOCAL_FALLBACK_KEY);data=raw?JSON.parse(raw):{};}catch(e){data={};}onFirstLoad();return;}
+    docRef.onSnapshot(snap=>{const remote=snap.exists?snap.data():{};data=(remote&&remote.entries)?remote.entries:{};setStatus('Synced - shared with team');onFirstLoad();},err=>{console.error('Sync error',err);setStatus('Connection issue');});
   }
 
-  (function init() {
-    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-      listenForChanges(() => {
-        renderRoster();
-        renderCalendar();
-        renderPanel();
-      });
+  async function saveData(){
+    if(!firebaseReady){try{localStorage.setItem(LOCAL_FALLBACK_KEY,JSON.stringify(data));}catch(e){}return;}
+    try{await docRef.set({entries:data},{merge:false});}catch(e){setStatus('Could not save');alert('Could not save to cloud.');}
+  }
+
+  function dayTotal(key){const list=data[key]||[];return Math.round(list.reduce((sum,e)=>sum+e.hours,0)*100)/100;}
+
+ const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab');
+  
+  tabBtns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const tab=btn.dataset.tab;
+      
+      // PASSWORD PROTECTION GATE FOR ADMIN TAB
+      if(tab==='admin') {
+        const passwordCheck = prompt("Enter Admin Password to continue:");
+        if (passwordCheck !== ADMIN_PASSWORD) {
+          alert("Access Denied: Incorrect Password.");
+          return; // Halts configuration and prevents switching tabs
+        }
+      }
+
+      tabBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      rosterTab.classList.toggle('hidden',tab!=='roster');
+      calendarTab.classList.toggle('hidden',tab!=='calendar');
+      adminTab.classList.toggle('hidden',tab!=='admin');
+      if(tab==='roster') renderRoster();
+      if(tab==='calendar'){renderCalendar();renderPanel();}
+      if(tab==='admin') renderManualEditor();
     });
-    })();
+  });
+  function getShiftClass(shift){if(shift==='1')return'shift-1';if(shift==='2')return'shift-2';if(shift==='3')return'shift-3';if(shift==='RD')return'shift-rd';return'';}
+
+  function renderRoster(){
+    const container=document.getElementById('rosterContainer');const y=current.getFullYear(),m=current.getMonth();const daysInMonth=new Date(y,m+1,0).getDate();
+    document.getElementById('monthLabel').textContent = `${MONTHS[m]} ${y}`;
+    if(!currentRoster){container.innerHTML='<div class="panel"><p style="color:var(--ink-soft);">No schedule for this month. Use Admin tab to upload.</p></div>';return;}
+    let html='';
+    for(const[dept,employees]of Object.entries(currentRoster)){
+      html+=`<div class="dept"><div class="dept-header">${dept}</div><div class="schedule-table-wrap"><table class="schedule-table"><thead><tr><th class="name-col">Name</th>`;
+      for(let d=1;d<=daysInMonth;d++){const date=new Date(y,m,d);const dow=date.toLocaleDateString('en-US',{weekday:'short'});const isToday=dateKey(y,m,d)===todayKey;html+=`<th style="${isToday?'background:var(--amber);color:var(--paper-raised);':''}">${d}<br><span style="font-weight:400;font-size:10px;">${dow}</span></th>`;}
+      html+=`</tr></thead><tbody>`;
+      for(const emp of employees){html+=`<tr data-emp="${emp.name}" data-dept="${dept}"><td class="name-col">${emp.name}</td>`;for(let d=0;d<daysInMonth;d++){const shift=emp.shifts[d]||'';const key=dateKey(y,m,d+1);const isToday=key===todayKey;html+=`<td class="${getShiftClass(shift)}" style="${isToday?'outline:2px solid var(--amber);outline-offset:-2px;':''}" data-day="${d+1}" data-shift="${shift}">${shift}</td>`;}html+=`</tr>`;}
+      html+=`</tbody></table></div></div>`;
+    }
+    container.innerHTML=html;
+    container.querySelectorAll('.schedule-table tbody tr').forEach(row=>{row.addEventListener('click',(e)=>{if(e.target.tagName==='TD'&&e.target.dataset.day){const day=parseInt(e.target.dataset.day);const empName=row.dataset.emp;selectedDate=dateKey(current.getFullYear(),current.getMonth(),day);selectedEmployee=empName;tabBtns.forEach(b=>b.classList.remove('active'));document.querySelector('.tab-btn[data-tab="calendar"]').classList.add('active');rosterTab.classList.add('hidden');calendarTab.classList.remove('hidden');adminTab.classList.add('hidden');renderCalendar();renderPanel();}});});
+  }
+
+  function renderCalendar(){const y=current.getFullYear(),m=current.getMonth();document.getElementById('monthLabel').textContent=`${MONTHS[m]} ${y}`;const firstDow=new Date(y,m,1).getDay();const daysInMonth=new Date(y,m+1,0).getDate();const body=document.getElementById('calendarBody');body.innerHTML='';let html='';const totalCells=Math.ceil((firstDow+daysInMonth)/7)*7;for(let i=0;i<totalCells;i++){if(i%7===0)html+='<div class="week-row">';const dayNum=i-firstDow+1;if(dayNum<1||dayNum>daysInMonth){html+=`<div class="day-cell empty"></div>`;}else{const key=dateKey(y,m,dayNum);const total=dayTotal(key);const isToday=key===todayKey;const isSelected=key===selectedDate;html+=`<div class="day-cell${isToday?' today':''}${isSelected?' selected':''}" data-key="${key}" data-day="${dayNum}"><span class="num">${dayNum}</span>${total>0?`<span class="tally">${total}h</span>`:''}</div>`;}if(i%7===6)html+='</div>';}body.innerHTML=html;body.querySelectorAll('.day-cell:not(.empty)').forEach(cell=>{cell.addEventListener('click',()=>{selectedDate=cell.dataset.key;renderCalendar();renderPanel();});});renderSummary();}
+
+  function renderSummary(){const y=current.getFullYear(),m=current.getMonth();const prefix=`${y}-${pad(m+1)}-`;let totalHours=0,days=0,entries=0;Object.keys(data).forEach(key=>{if(key.startsWith(prefix)&&data[key].length){days++;entries+=data[key].length;totalHours+=dayTotal(key);}});document.getElementById('sumHours').textContent=`${Math.round(totalHours*100)/100}h`;document.getElementById('sumDays').textContent=days;document.getElementById('sumEntries').textContent=entries;}
+
+  const SHIFTS={first:{label:'First shift',start:'00:00',end:'08:00',hours:8},second:{label:'Second shift',start:'08:00',end:'16:00',hours:8},third:{label:'Third shift',start:'16:00',end:'00:00',hours:8}};
+
+  function getAllEmployees(){const emps=[];if(currentRoster){for(const[dept,employees]of Object.entries(currentRoster)){employees.forEach(e=>emps.push({name:e.name,dept}));}}return emps;}
+
+  function renderPanel(){
+    const addForm=document.getElementById('addForm'),panelDate=document.getElementById('panelDate'),panelTotal=document.getElementById('panelTotal'),entriesList=document.getElementById('entriesList'),empSelect=document.getElementById('empSelect');
+    if(!selectedDate){panelDate.textContent='Select a date';panelTotal.textContent='';entriesList.innerHTML='';empSelect.innerHTML='';addForm.style.display='none';return;}
+    const[y,m,d]=selectedDate.split('-').map(Number);const dt=new Date(y,m-1,d);panelDate.textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});const list=data[selectedDate]||[];const total=dayTotal(selectedDate);panelTotal.textContent=list.length?`${total}h total`:'';
+    if(list.length===0){entriesList.innerHTML='<div class="empty-note">No overtime logged for this date yet.</div>';}else{entriesList.innerHTML=list.map(e=>`<div class="entry-row"><span class="entry-time">${e.employeeName||'Unknown'}<br><span style="font-weight:400;font-size:12px;color:var(--ink-soft);">${e.shiftLabel||''} &middot; ${fmtTime(e.start)} - ${fmtTime(e.end)}</span></span><span class="entry-hours">${e.hours}h</span><span class="entry-note">${e.note?escapeHtml(e.note):''}</span><button class="entry-del" data-id="${e.id}" aria-label="Delete entry">&times;</button></div>`).join('');entriesList.querySelectorAll('.entry-del').forEach(btn=>{btn.addEventListener('click',async()=>{data[selectedDate]=data[selectedDate].filter(e=>e.id!==btn.dataset.id);if(data[selectedDate].length===0)delete data[selectedDate];await saveData();renderCalendar();renderPanel();});});}
+    const allEmps=getAllEmployees();if(allEmps.length===0){empSelect.innerHTML='<span style="color:var(--ink-soft);font-size:12px;">No employees loaded.</span>';}else{empSelect.innerHTML=allEmps.map(e=>`<button type="button" class="emp-chip${selectedEmployee===e.name?' active':''}" data-name="${e.name}">${e.name} <span style="opacity:0.6;font-size:10px;"></span></button>`).join('');empSelect.querySelectorAll('.emp-chip').forEach(chip=>{chip.addEventListener('click',()=>{selectedEmployee=chip.dataset.name;renderPanel();});});}
+    addForm.style.display='flex';document.getElementById('formMsg').textContent='';selectedShift=null;const shiftBtns=document.querySelectorAll('.shift-btn');shiftBtns.forEach(btn=>{btn.classList.remove('active');btn.onclick=()=>{selectedShift=btn.dataset.shift;shiftBtns.forEach(b=>b.classList.toggle('active',b===btn));};});
+  }
+
+  function escapeHtml(s){const div=document.createElement('div');div.textContent=s;return div.innerHTML;}
+
+  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();const msg=document.getElementById('formMsg');if(!selectedEmployee){msg.textContent='Select an employee first.';return;}if(!selectedShift){msg.textContent='Choose a shift first.';return;}const shift=SHIFTS[selectedShift];if(!data[selectedDate])data[selectedDate]=[];const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
+
+  document.getElementById('prevBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()-1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
+  document.getElementById('nextBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()+1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
+
+  function parseCsvInput(text){const lines=text.trim().split('\n').filter(l=>l.trim());const roster={};for(const line of lines){const parts=line.split(/[,\t]+/).map(p=>p.trim().toUpperCase());if(parts.length<3)continue;const dept=parts[0],name=parts[1],shifts=parts.slice(2);if(!roster[dept])roster[dept]=[];roster[dept].push({name,shifts});}return Object.keys(roster).length>0?roster:null;}
+
+  document.getElementById('previewCsvBtn').addEventListener('click',()=>{const text=document.getElementById('csvInput').value;const msg=document.getElementById('csvMsg');parsedCsvRoster=parseCsvInput(text);if(!parsedCsvRoster){msg.textContent='Could not parse. Format: DEPT, NAME, shift1, shift2, ...';msg.className='form-msg';return;}renderManualEditor(parsedCsvRoster);msg.textContent=`Parsed ${Object.values(parsedCsvRoster).flat().length} employees. Review below, then Save.`;msg.className='form-msg success';});
+
+  document.getElementById('saveCsvBtn').addEventListener('click',async()=>{if(!parsedCsvRoster){document.getElementById('csvMsg').textContent='Preview first.';return;}await saveRosterToFirebase(parsedCsvRoster);});
+  document.getElementById('saveLocalBtn').addEventListener('click',()=>{if(!parsedCsvRoster){document.getElementById('csvMsg').textContent='Preview first.';return;}saveRosterToLocal(parsedCsvRoster);});
+  document.getElementById('clearLocalBtn').addEventListener('click',()=>{localStorage.removeItem(LOCAL_ROSTER_KEY);document.getElementById('csvMsg').textContent='Local roster data cleared.';document.getElementById('csvMsg').className='form-msg success';loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!rosterTab.classList.contains('hidden'))renderRoster();});});
+
+  async function saveRosterToFirebase(rosterData){const msg=document.getElementById('csvMsg');if(!firebaseReady){msg.textContent='Firebase not connected. Saving locally...';saveRosterToLocal(rosterData);return;}const year=document.getElementById('csvYear').value;const month=parseInt(document.getElementById('csvMonth').value);const key=rosterKey(year,month);try{await rosterRef.doc(key).set({departments:rosterData,updatedAt:new Date().toISOString()});msg.textContent=`Saved to Firebase for ${MONTHS[month]} ${year}!`;msg.className='form-msg success';currentRoster=rosterData;rosterSource='firebase';updateSourceBadge();}catch(e){msg.textContent='Failed: '+e.message;msg.className='form-msg';}}
+
+  function saveRosterToLocal(rosterData){const msg=document.getElementById('csvMsg');const year=document.getElementById('csvYear').value;const month=parseInt(document.getElementById('csvMonth').value);const key=rosterKey(year,month);try{const existing=JSON.parse(localStorage.getItem(LOCAL_ROSTER_KEY)||'{}');existing[key]=rosterData;localStorage.setItem(LOCAL_ROSTER_KEY,JSON.stringify(existing));msg.textContent=`Saved locally for ${MONTHS[month]} ${year}.`;msg.className='form-msg success';currentRoster=rosterData;rosterSource='local';updateSourceBadge();}catch(e){msg.textContent='Failed to save locally.';msg.className='form-msg';}}
+
+  function renderManualEditor(previewRoster){const container=document.getElementById('manualEditor');const roster=previewRoster||currentRoster;if(!roster){container.innerHTML='<p style="color:var(--ink-soft);">No roster data to edit. Upload CSV or navigate to a month with data.</p>';return;}const daysInMonth=31;let html='<div style="overflow-x:auto;"><table class="admin-table"><thead><tr><th>Dept</th><th>Name</th>';for(let d=1;d<=daysInMonth;d++)html+=`<th>${d}</th>`;html+='</tr></thead><tbody>';for(const[dept,employees]of Object.entries(roster)){for(const emp of employees){html+=`<tr data-dept="${dept}" data-name="${emp.name}"><td>${dept}</td><td>${emp.name}</td>`;for(let d=0;d<daysInMonth;d++){const shift=emp.shifts[d]||'';html+=`<td><input type="text" value="${shift}" data-day="${d}" maxlength="2" style="width:28px;text-align:center;"></td>`;}html+='</tr>';}}html+='</tbody></table></div>';container.innerHTML=html;container.querySelectorAll('input[data-day]').forEach(input=>{input.addEventListener('change',(e)=>{const row=e.target.closest('tr');const dept=row.dataset.dept;const name=row.dataset.name;const day=parseInt(e.target.dataset.day);const val=e.target.value.trim().toUpperCase();if(!['1','2','3','RD',''].includes(val)){e.target.value='';return;}if(!roster[dept])return;const emp=roster[dept].find(x=>x.name===name);if(emp){emp.shifts[day]=val;}});});}
+
+  document.getElementById('saveManualBtn').addEventListener('click',async()=>{const roster=extractFromEditor();if(roster)await saveRosterToFirebase(roster);});
+  document.getElementById('saveManualLocalBtn').addEventListener('click',()=>{const roster=extractFromEditor();if(roster)saveRosterToLocal(roster);});
+
+  function extractFromEditor(){const container=document.getElementById('manualEditor');const table=container.querySelector('table');if(!table)return null;const roster={};table.querySelectorAll('tbody tr').forEach(row=>{const dept=row.dataset.dept;const name=row.dataset.name;if(!roster[dept])roster[dept]=[];const shifts=[];row.querySelectorAll('input[data-day]').forEach(input=>{shifts.push(input.value.trim().toUpperCase()||'');});roster[dept].push({name,shifts});});return roster;}
+
+  (function init(){
+    loadRoster(current.getFullYear(),current.getMonth()).then(()=>{
+      listenForChanges(()=>{renderRoster();renderCalendar();renderPanel();});
+    });
   })();
 })();
 </script>
