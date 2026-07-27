@@ -443,42 +443,70 @@ let db = null, auth = null, currentUser = null;
     auth.signOut();
   });
 
-  // Auth Observer
-  if(firebaseReady) {
+ // Auth Observer
+  if (firebaseReady) {
     auth.onAuthStateChanged(async (user) => {
-      if(user) {
+      if (user) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
-        
-        // Fetch User Data
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        if(userDoc.exists) {
-          currentUserDoc = userDoc.data();
-          userBadge.innerText = `${currentUserDoc.name} (${currentUserDoc.role})`;
-          userBadge.style.display = 'inline-block';
 
-          if(currentUserDoc.role === 'admin') {
-            adminTabBtn.classList.remove('hidden');
-            loadUserAccountsTable();
+        try {
+          // Fetch Live User Data from Firestore
+          const userDoc = await db.collection('users').doc(user.uid).get();
+
+          if (userDoc.exists) {
+            // Assign to BOTH global variables so all UI scripts share the same status
+            currentUserDoc = userDoc.data();
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              ...currentUserDoc
+            };
+
+            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
+            userBadge.style.display = 'inline-block';
+
+            if (currentUser.role === 'admin') {
+              adminTabBtn.classList.remove('hidden');
+              loadUserAccountsTable();
+            } else {
+              adminTabBtn.classList.add('hidden');
+              // If viewing admin tab, force fallback to roster
+              document.getElementById('rosterTab')?.classList.remove('hidden');
+              document.getElementById('adminTab')?.classList.add('hidden');
+            }
           } else {
-            adminTabBtn.classList.add('hidden');
-            // If viewing admin tab, force fallback to roster
-            document.getElementById('rosterTab').classList.remove('hidden');
-            document.getElementById('adminTab').classList.add('hidden');
+            console.warn('No Firestore document found for user UID:', user.uid);
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              name: user.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+            currentUserDoc = currentUser;
           }
+        } catch (err) {
+          console.error('Error loading user profile:', err);
         }
       } else {
+        currentUser = null;
         currentUserDoc = null;
         loginBtn.style.display = 'block';
         logoutBtn.style.display = 'none';
         userBadge.style.display = 'none';
         adminTabBtn.classList.add('hidden');
-        document.getElementById('rosterTab').classList.remove('hidden');
-        document.getElementById('adminTab').classList.add('hidden');
+        document.getElementById('rosterTab')?.classList.remove('hidden');
+        document.getElementById('adminTab')?.classList.add('hidden');
+      }
+
+      // Trigger permission and UI refresh with updated user object
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
       }
     });
   }
-
+  
   // Fetch Users List for Admin View
   async function loadUserAccountsTable() {
     const tbody = document.getElementById('userAccountsTableBody');
