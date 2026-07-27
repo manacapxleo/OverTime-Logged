@@ -1204,7 +1204,26 @@ if (loginForm) {
   window.deleteOvertimeEntry = async function (dateKey, entryId) {
   // Security Check: Block if not logged in or not approved
   const isAllowed = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
-  
+
+
+// 2. Only generate the "×" HTML string if the user is allowed
+const deleteButtonHtml = isAllowedToEdit
+  ? `<span class="delete-btn" onclick="deleteOvertimeEntry('${dateKey}', '${entry.id}')" style="cursor:pointer; color:#dc3545; font-weight:bold;">×</span>`
+  : '';
+
+// 3. Inject deleteButtonHtml into your entry row template:
+const entryRow = `
+  <div class="entry-item" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <strong>${escapeHtml(entry.employeeName)}</strong> <span style="color:#d97706; font-weight:bold;">${entry.hours}h</span><br>
+      <small style="color:#64748b;">${entry.shiftLabel} • ${entry.start} - ${entry.end}</small>
+    </div>
+    <div>
+      ${deleteButtonHtml}
+    </div>
+  </div>
+`;
+    
   if (!isAllowed) {
     alert('Permission Denied: Only approved accounts can delete overtime entries.');
     return;
