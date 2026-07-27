@@ -1102,7 +1102,7 @@ if (loginForm) {
       }
     });
   }
-function updateAuthUI() {
+ function updateAuthUI() {
     const otPermissionNotice = document.getElementById('otPermissionNotice');
     const otFormFields = document.getElementById('otFormFields');
     
@@ -1157,10 +1157,6 @@ function updateAuthUI() {
         otFormFields.style.pointerEvents = 'none';
       }
     }
-
-    // Re-render views so '×' delete buttons refresh based on currentUser permission
-    if (typeof renderPanel === 'function') renderPanel();
-    if (typeof renderCalendar === 'function') renderCalendar();
   }
   function renderAdminAccountTable() {
     const tbody = document.getElementById('userAccountsTableBody');
