@@ -1386,15 +1386,20 @@ if (addBtn) {
   addBtn.addEventListener('click', async () => {
     const userRole = (currentUser?.role || '').toLowerCase();
     const userStatus = (currentUser?.status || '').toLowerCase();
+    
+    // Auth Permission Check
     if (!currentUser || (userRole !== 'admin' && userStatus !== 'approved')) {
       alert('Permission Required: You need an approved account to add overtime.');
       return;
     }
 
     if (!selectedDate) return;
+    
     const noteInput = document.getElementById('noteInput');
     const note = noteInput ? noteInput.value.trim() : '';
     const msg = document.getElementById('formMsg');
+    
+    if (msg) msg.textContent = ''; // Clear previous messages
 
     if (typeof selectedEmployee === 'undefined' || !selectedEmployee) {
       if (msg) msg.textContent = 'Select an employee first.';
@@ -1405,17 +1410,25 @@ if (addBtn) {
       return;
     }
 
-    const shift = SHIFTS[selectedShift];
+    const shift = typeof SHIFTS !== 'undefined' ? SHIFTS[selectedShift] : null;
+    if (!shift) {
+      if (msg) msg.textContent = 'Invalid shift selection.';
+      return;
+    }
+
     if (!data[selectedDate]) data[selectedDate] = [];
+    
     const alreadyLogged = data[selectedDate].some(
       (e) => e.employeeName === selectedEmployee && e.shift === selectedShift
     );
+    
     if (alreadyLogged) {
       if (msg) msg.textContent = `${selectedEmployee} already has ${shift.label} logged.`;
       return;
     }
 
-    data[selectedDate].push({
+    // Create entry
+    const newEntry = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       employeeName: selectedEmployee,
       shift: selectedShift,
@@ -1424,13 +1437,36 @@ if (addBtn) {
       end: shift.end,
       hours: shift.hours,
       note,
+    };
+
+    // Temporarily add to local state
+    data[selectedDate].push(newEntry);
+    data[selectedDate].sort((a, b) => {
+      const getMin = (t) => (typeof timeToMinutes === 'function' ? timeToMinutes(t) : 0);
+      return getMin(a.start) - getMin(b.start);
     });
 
-    data[selectedDate].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-    await saveData();
-    if (noteInput) noteInput.value = '';
-    renderCalendar();
-    renderPanel();
+    try {
+      if (typeof saveData === 'function') {
+        await saveData();
+      }
+
+      // Success cleanup
+      if (noteInput) noteInput.value = '';
+      if (msg) msg.textContent = '';
+      
+      // Reset selected states if used globally
+      if (typeof selectedEmployee !== 'undefined') selectedEmployee = null;
+      if (typeof selectedShift !== 'undefined') selectedShift = null;
+
+      if (typeof renderCalendar === 'function') renderCalendar();
+      if (typeof renderPanel === 'function') renderPanel();
+    } catch (err) {
+      console.error('Error saving overtime entry:', err);
+      // Rollback local state if save fails
+      data[selectedDate] = data[selectedDate].filter((e) => e.id !== newEntry.id);
+      if (msg) msg.textContent = 'Failed to save entry: ' + err.message;
+    }
   });
 }
 
@@ -1439,11 +1475,16 @@ const prevBtn = document.getElementById('prevBtn');
 if (prevBtn) {
   prevBtn.addEventListener('click', () => {
     current.setMonth(current.getMonth() - 1);
-    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-      const calendarTab = document.getElementById('calendarTab');
-      if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
-      else renderRoster();
-    });
+    if (typeof loadRoster === 'function') {
+      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+        const calendarTab = document.getElementById('calendarTab');
+        if (calendarTab && !calendarTab.classList.contains('hidden')) {
+          if (typeof renderCalendar === 'function') renderCalendar();
+        } else {
+          if (typeof renderRoster === 'function') renderRoster();
+        }
+      });
+    }
   });
 }
 
@@ -1451,11 +1492,16 @@ const nextBtn = document.getElementById('nextBtn');
 if (nextBtn) {
   nextBtn.addEventListener('click', () => {
     current.setMonth(current.getMonth() + 1);
-    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-      const calendarTab = document.getElementById('calendarTab');
-      if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
-      else renderRoster();
-    });
+    if (typeof loadRoster === 'function') {
+      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+        const calendarTab = document.getElementById('calendarTab');
+        if (calendarTab && !calendarTab.classList.contains('hidden')) {
+          if (typeof renderCalendar === 'function') renderCalendar();
+        } else {
+          if (typeof renderRoster === 'function') renderRoster();
+        }
+      });
+    }
   });
 }
 
