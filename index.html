@@ -306,37 +306,29 @@ let db = null, auth = null, currentUser = null;
 
   // Monitor Auth State Changes
   if (auth) {
-auth.onAuthStateChanged(async (firebaseUser) => {
+    auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // 1. Fetch live user status and role from 'users' collection
+          const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
 
-    if (!firebaseUser) {
-        currentUser = null;
-        updateAuthUI();
-        return;
-    }
-
-    const doc = await db.collection("users")
-        .doc(firebaseUser.uid)
-        .get();
-
-    if (!doc.exists) {
-        currentUser = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            role: "editor",
-            status: "pending"
-        };
-    } else {
-        currentUser = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            ...doc.data()
-        };
-    }
-
-    console.log("Loaded Firestore user:", currentUser);
-
-    updateAuthUI();
-});
+          if (userDoc.exists) {
+            currentUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              ...userDoc.data() // Preserves 'status' (approved/pending) and 'role' (admin/editor)
+            };
+          } else {
+            console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
+            // Default fallback if document missing
+            currentUser = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+          }
 
           // 2. Optional: Fetch extra roster details if needed
           const rosterQuery = await db.collection('rosters').where('email', '==', firebaseUser.email).get();
@@ -451,6 +443,69 @@ auth.onAuthStateChanged(async (firebaseUser) => {
     auth.signOut();
   });
 
+ // Auth Observer
+  if (firebaseReady) {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
+
+        try {
+          // Fetch Live User Data from Firestore
+          const userDoc = await db.collection('users').doc(user.uid).get();
+
+          if (userDoc.exists) {
+            // Assign to BOTH global variables so all UI scripts share the same status
+            currentUserDoc = userDoc.data();
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              ...currentUserDoc
+            };
+
+            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
+            userBadge.style.display = 'inline-block';
+
+            if (currentUser.role === 'admin') {
+              adminTabBtn.classList.remove('hidden');
+              loadUserAccountsTable();
+            } else {
+              adminTabBtn.classList.add('hidden');
+              // If viewing admin tab, force fallback to roster
+              document.getElementById('rosterTab')?.classList.remove('hidden');
+              document.getElementById('adminTab')?.classList.add('hidden');
+            }
+          } else {
+            console.warn('No Firestore document found for user UID:', user.uid);
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              name: user.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+            currentUserDoc = currentUser;
+          }
+        } catch (err) {
+          console.error('Error loading user profile:', err);
+        }
+      } else {
+        currentUser = null;
+        currentUserDoc = null;
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        userBadge.style.display = 'none';
+        adminTabBtn.classList.add('hidden');
+        document.getElementById('rosterTab')?.classList.remove('hidden');
+        document.getElementById('adminTab')?.classList.add('hidden');
+      }
+
+      // Trigger permission and UI refresh with updated user object
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+      }
+    });
+  }
   
   // Fetch Users List for Admin View
   async function loadUserAccountsTable() {
@@ -1016,7 +1071,9 @@ function dayTotal(key) {
     { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' },
   ];
   
-
+  // FIX: Start with currentUser as null on page load. 
+  // Let Firebase Auth onAuthStateChanged populate it with live data from Firestore.
+  let currentUser = null;
 
   function saveAccounts() {
     localStorage.setItem('apo_accounts', JSON.stringify(accounts));
@@ -1125,14 +1182,26 @@ if (loginForm) {
         // 2. Direct fetch from Firestore to guarantee state
         const userDoc = await db.collection('users').doc(user.uid).get();
 
-        await auth.signInWithEmailAndPassword(email,password);
+        if (userDoc.exists) {
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            ...userDoc.data()
+          };
+        } else {
+          // Default fallback for admin account
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            name: 'Admin',
+            role: 'admin',
+            status: 'approved'
+          };
+        }
 
         // 3. Immediately refresh UI permissions
         updateAuthUI();
 
-
-
-        
         if (loginModal) loginModal.style.display = 'none';
         loginForm.reset();
         if (authMsg) authMsg.textContent = '';
@@ -1252,6 +1321,16 @@ if (loginForm) {
     });
   }
 
+  window.approveUser = function (index) {
+    accounts[index].status = 'approved';
+    saveAccounts();
+    renderAdminAccountTable();
+    if (currentUser && currentUser.email === accounts[index].email) {
+      currentUser.status = 'approved';
+      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
+      updateAuthUI();
+    }
+  };
 
   window.rejectUser = function (index) {
     accounts[index].status = 'pending';
@@ -1259,7 +1338,7 @@ if (loginForm) {
     renderAdminAccountTable();
     if (currentUser && currentUser.email === accounts[index].email) {
       currentUser.status = 'pending';
-     
+      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
       updateAuthUI();
     }
   };
