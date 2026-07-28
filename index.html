@@ -1694,20 +1694,16 @@ const saveManualBtn = document.getElementById('saveManualBtn');
     return Object.keys(roster).length > 0 ? roster : null;
   }
 
- (function init() {
-    if (typeof loadRoster === 'function') {
-      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-        if (typeof listenForChanges === 'function') {
-          listenForChanges(() => {
-            if (typeof renderRoster === 'function') renderRoster();
-            if (typeof renderCalendar === 'function') renderCalendar();
-            if (typeof renderPanel === 'function') renderPanel();
-});
-        }
+  (function init() {
+    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+      listenForChanges(() => {
+        renderRoster();
+        renderCalendar();
+        renderPanel();
       });
-    }
+    });
+    })();
   })();
-
 })();
 </script>
 </body>
