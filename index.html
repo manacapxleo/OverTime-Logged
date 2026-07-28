@@ -395,26 +395,29 @@ try {
 
 // Auth Observer
   let userDocUnsubscribe = null;
+  let isAuthLoaded = false;
   if (firebaseReady) {
     auth.onAuthStateChanged(async (user) => {
       const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
 
       if (user) {
+try {
+        // Fetch user doc directly on refresh
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        
         if (loginBtn) loginBtn.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'block';
 
-        try {
-          // Fetch user document from Firestore
-          const userDoc = await db.collection('users').doc(user.uid).get();
 
           if (userDoc.exists) {
-            currentUserDoc = userDoc.data();
-            currentUser = {
-              uid: user.uid,
-              email: user.email,
-              ...currentUserDoc
+ const data = userDoc.data();
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+              ...data,
             };
-
+        status: (data.status || 'pending').toLowerCase()
+            
             if (userBadge) {
               userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
               userBadge.style.display = 'inline-block';
