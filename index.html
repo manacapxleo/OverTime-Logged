@@ -1192,13 +1192,14 @@ console.log("Firestore data:", userDoc.data());
         adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
       }
 
-      if (currentUser.role === 'admin' || currentUser.status === 'approved') {
-        if (otPermissionNotice) otPermissionNotice.style.display = 'none';
-        if (otFormFields) {
-          otFormFields.style.opacity = '1';
-          otFormFields.style.pointerEvents = 'auto';
-        }
-      } else {
+    const userStatus = (currentUser.status || '').toLowerCase();
+if (currentUser.role === 'admin' || userStatus === 'approved') {
+  if (otPermissionNotice) otPermissionNotice.style.display = 'none';
+  if (otFormFields) {
+    otFormFields.style.opacity = '1';
+    otFormFields.style.pointerEvents = 'auto';
+  }
+} else {
         if (otPermissionNotice) {
           otPermissionNotice.style.display = 'block';
           otPermissionNotice.innerHTML =
