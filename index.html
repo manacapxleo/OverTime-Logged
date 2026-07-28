@@ -1270,16 +1270,6 @@ console.log("Firestore data:", userDoc.data());
     });
   }
 
-  window.approveUser = function (index) {
-    accounts[index].status = 'approved';
-    saveAccounts();
-    renderAdminAccountTable();
-    if (currentUser && currentUser.email === accounts[index].email) {
-      currentUser.status = 'approved';
-      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
-      updateAuthUI();
-    }
-  };
 
   window.rejectUser = function (index) {
     accounts[index].status = 'pending';
