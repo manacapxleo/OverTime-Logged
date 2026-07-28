@@ -1531,6 +1531,31 @@ const entryRow = `
     }
   }
 
+  function renderDayDetails(selectedDate) {
+  // ... date heading rendering ...
+
+  const otPermissionNotice = document.getElementById('otPermissionNotice');
+  const otFormFields = document.getElementById('otFormFields');
+
+  // Check if currentUser is populated and approved
+  const isApproved = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
+
+  if (isApproved) {
+    if (otPermissionNotice) otPermissionNotice.style.display = 'none';
+    if (otFormFields) {
+      otFormFields.style.display = 'block';
+      otFormFields.style.opacity = '1';
+      otFormFields.style.pointerEvents = 'auto';
+    }
+  } else {
+    if (otPermissionNotice) otPermissionNotice.style.display = 'block';
+    if (otFormFields) {
+      otFormFields.style.opacity = '0.5';
+      otFormFields.style.pointerEvents = 'none';
+    }
+  }
+}
+
   function renderManualEditor(previewRoster) {
     const container = document.getElementById('manualEditor');
     if (!container) return;
