@@ -394,7 +394,7 @@ try {
   });
 
 // Auth Observer
- let isAuthLoaded = false;
+   let userDocUnsubscribe = null;
 if (firebaseReady) {
   auth.onAuthStateChanged(async (user) => {
     if (user) {
