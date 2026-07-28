@@ -495,11 +495,17 @@ try {
     }
   }
 
-  window.toggleUserStatus = async (uid, currentStatus) => {
-    const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
+window.toggleUserStatus = async (uid, currentStatus) => {
+  const statusLower = (currentStatus || '').toLowerCase();
+  const newStatus = statusLower === 'approved' ? 'pending' : 'approved';
+  
+  try {
     await db.collection('users').doc(uid).update({ status: newStatus });
     loadUserAccountsTable();
-  };
+  } catch (err) {
+    alert("Failed to update status: " + err.message);
+  }
+};
 
   window.updateUserRole = async (uid, newRole) => {
     await db.collection('users').doc(uid).update({ role: newRole });
