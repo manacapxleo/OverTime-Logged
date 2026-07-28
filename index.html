@@ -1588,7 +1588,12 @@ if (nextBtn) {
     html += '</tr></thead><tbody>';
     for (const [dept, employees] of Object.entries(roster)) {
       for (const emp of employees) {
-        html += `<tr data-dept="${dept}" data-name="${emp.name}"><td>${dept}</td><td>${emp.name}</td>`;
+   function escapeAttr(str) {
+  return String(str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Inside renderManualEditor loop:
+html += `<tr data-dept="${escapeAttr(dept)}" data-name="${escapeAttr(emp.name)}"><td>${dept}</td><td>${emp.name}</td>`;
         for (let d = 0; d < daysInMonth; d++) {
           const shift = emp.shifts[d] || '';
           html += `<td><input type="text" value="${shift}" data-day="${d}" maxlength="2" style="width:28px;text-align:center;"></td>`;
