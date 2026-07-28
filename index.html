@@ -394,33 +394,50 @@ try {
   });
 
 // Auth Observer
-   let userDocUnsubscribe = null;
-if (firebaseReady) {
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      try {
-        // Fetch user doc directly on refresh
-        const userDoc = await db.collection('users').doc(user.uid).get();
+  let userDocUnsubscribe = null;
+  if (firebaseReady) {
+    auth.onAuthStateChanged(async (user) => {
+      const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
 
-        if (userDoc.exists) {
-          const data = userDoc.data();
-          currentUser = {
-            uid: user.uid,
-            email: user.email,
-            ...data,
-            // Force lowercase so checks like 'approved' never fail
-            status: (data.status || 'pending').toLowerCase()
-          };
-        } else {
-          // If no doc exists, create fallback
-          currentUser = {
-            uid: user.uid,
-            email: user.email,
-            role: 'editor',
-            status: 'pending'
-          };
-        }
-      } catch (err) {
+      if (user) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'block';
+
+        try {
+          // Fetch user document from Firestore
+          const userDoc = await db.collection('users').doc(user.uid).get();
+
+          if (userDoc.exists) {
+            currentUserDoc = userDoc.data();
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              ...currentUserDoc
+            };
+
+            if (userBadge) {
+              userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
+              userBadge.style.display = 'inline-block';
+            }
+
+            if (adminTabBtn) {
+              adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+            }
+
+            if (currentUser.role === 'admin' && typeof loadUserAccountsTable === 'function') {
+              loadUserAccountsTable();
+            }
+          } else {
+            console.warn('No Firestore document found for user UID:', user.uid);
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              name: user.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+          }
+        } catch (err) {
           console.error('Error loading user profile:', err);
         }
       } else {
@@ -1163,29 +1180,40 @@ console.log("Firestore data:", userDoc.data());
     });
   }
   
-  function updateAuthUI() {
-    const otPermissionNotice = document.getElementById('otPermissionNotice');
-    const otFormFields = document.getElementById('otFormFields');
-    const addBtn = document.getElementById('addBtn');
-    // Select the Admin Tab button
-    const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
+ function updateAuthUI() {
+  const otPermissionNotice = document.getElementById('otPermissionNotice');
+  const otFormFields = document.getElementById('otFormFields');
+  const addBtn = document.getElementById('addBtn');
+
+  // Safety check: handle null currentUser or missing status safely
   const isUserLoggedIn = !!currentUser;
   const userRole = currentUser?.role || '';
   const userStatus = (currentUser?.status || '').toLowerCase();
-const isApprovedOrAdmin = isUserLoggedIn && (userRole === 'admin' || userStatus === 'approved');
-    
-    if (currentUser) {
-      if (loginBtn) loginBtn.style.display = 'none';
-      if (logoutBtn) logoutBtn.style.display = 'inline-block';
-      if (userBadge) {
-        userBadge.style.display = 'inline-block';
-        userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
-      }
 
-      // SHOW ADMIN TAB BUTTON IF USER IS ADMIN
-      if (adminTabBtn) {
-        adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-      }
+  const isApprovedOrAdmin = isUserLoggedIn && (userRole === 'admin' || userStatus === 'approved');
+
+  if (otPermissionNotice && otFormFields) {
+    if (isApprovedOrAdmin) {
+      // 1. Hide warning notice
+      otPermissionNotice.style.display = 'none';
+
+      // 2. Unlock form container
+      otFormFields.style.opacity = '1';
+      otFormFields.style.pointerEvents = 'auto';
+
+      // 3. Enable submit button
+      if (addBtn) addBtn.disabled = false;
+    } else {
+      // 1. Show warning notice
+      otPermissionNotice.style.display = 'block';
+
+      // 2. Lock form container visually and prevent clicks
+      otFormFields.style.opacity = '0.5';
+      otFormFields.style.pointerEvents = 'none';
+
+      // 3. Disable submit button
+      if (addBtn) addBtn.disabled = true;
+    }
 
     const userStatus = (currentUser.status || '').toLowerCase();
 if (currentUser.role === 'admin' || userStatus === 'approved') {
