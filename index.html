@@ -1538,7 +1538,12 @@ const entryRow = `
 
   function renderDayDetails(selectedDate) {
   // ... date heading rendering ...
-
+console.log("DEBUG AUTH UI:", {
+  currentUser: currentUser,
+  role: currentUser?.role,
+  status: currentUser?.status,
+  isLoggedIn: !!currentUser
+});
   const otPermissionNotice = document.getElementById('otPermissionNotice');
   const otFormFields = document.getElementById('otFormFields');
 
