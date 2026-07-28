@@ -1066,14 +1066,7 @@ function dayTotal(key) {
   }
 
 
-// Account Store & Current Session State
-  let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
-    { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' },
-  ];
   
-  // FIX: Start with currentUser as null on page load. 
-  // Let Firebase Auth onAuthStateChanged populate it with live data from Firestore.
-  let currentUser = null;
 
   function saveAccounts() {
     localStorage.setItem('apo_accounts', JSON.stringify(accounts));
