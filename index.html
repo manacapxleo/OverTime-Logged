@@ -1125,7 +1125,12 @@ if (loginForm) {
         const user = userCredential.user;
 
         // 2. Direct fetch from Firestore to guarantee state
-        const userDoc = await db.collection('users').doc(user.uid).get();
+       console.log("Auth UID:", user.uid);
+
+const userDoc = await db.collection("users").doc(user.uid).get();
+
+console.log("Firestore document exists:", userDoc.exists);
+console.log("Firestore data:", userDoc.data());
 
         if (userDoc.exists) {
           currentUser = {
