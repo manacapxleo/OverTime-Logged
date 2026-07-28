@@ -1065,7 +1065,10 @@ function dayTotal(key) {
     return div.innerHTML;
   }
 
-
+// Account Store & Current Session State
+  let accounts = JSON.parse(localStorage.getItem('apo_accounts')) || [
+    { email: 'admin@apopackhouse.com', password: 'leeyoo', name: 'Admin', role: 'admin', status: 'approved' },
+  ];
   
 
   function saveAccounts() {
