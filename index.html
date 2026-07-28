@@ -393,59 +393,67 @@ try {
     auth.signOut();
   });
 
-let userDocUnsubscribe = null;
+// Auth Observer
+  if (firebaseReady) {
+    auth.onAuthStateChanged(async (user) => {
+      const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
 
-if (firebaseReady) {
-  auth.onAuthStateChanged((user) => {
-    // Clean up previous listener if user switches accounts
-    if (userDocUnsubscribe) {
-      userDocUnsubscribe();
-      userDocUnsubscribe = null;
-    }
+      if (user) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'block';
 
-    if (user) {
-      loginBtn.style.display = 'none';
-      logoutBtn.style.display = 'block';
+        try {
+          // Fetch user document from Firestore
+          const userDoc = await db.collection('users').doc(user.uid).get();
 
-      // Attach a real-time listener to the logged-in user's doc
-      userDocUnsubscribe = db.collection('users').doc(user.uid).onSnapshot((userDoc) => {
-        if (userDoc.exists) {
-          currentUserDoc = userDoc.data();
-          currentUser = {
-            uid: user.uid,
-            email: user.email,
-            ...currentUserDoc,
-            // Ensure status is always lowercased in JS memory
-            status: (currentUserDoc.status || 'pending').toLowerCase()
-          };
+          if (userDoc.exists) {
+            currentUserDoc = userDoc.data();
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              ...currentUserDoc
+            };
 
-          if (userBadge) {
-            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.status.toUpperCase()})`;
-            userBadge.style.display = 'inline-block';
+            if (userBadge) {
+              userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
+              userBadge.style.display = 'inline-block';
+            }
+
+            if (adminTabBtn) {
+              adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+            }
+
+            if (currentUser.role === 'admin' && typeof loadUserAccountsTable === 'function') {
+              loadUserAccountsTable();
+            }
+          } else {
+            console.warn('No Firestore document found for user UID:', user.uid);
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              name: user.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
           }
-
-          if (adminTabBtn) {
-            adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-          }
+        } catch (err) {
+          console.error('Error loading user profile:', err);
         }
-        
-        // Refresh permissions instantly whenever Firestore updates
-        updateAuthUI();
-      }, (err) => {
-        console.error("Error listening to user document:", err);
-      });
+      } else {
+        currentUser = null;
+        currentUserDoc = null;
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (userBadge) userBadge.style.display = 'none';
+        if (adminTabBtn) adminTabBtn.style.display = 'none';
+      }
 
-    } else {
-      currentUser = null;
-      currentUserDoc = null;
-      loginBtn.style.display = 'inline-block';
-      logoutBtn.style.display = 'none';
-      userBadge.style.display = 'none';
-      if (adminTabBtn) adminTabBtn.style.display = 'none';
-      updateAuthUI();
-    }
-  });
-}
+      // Trigger UI permission refresh (Unlocks Overtime form if status === 'approved')
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+      }
+    });
+  }
   
   // Fetch Users List for Admin View
   async function loadUserAccountsTable() {
@@ -486,17 +494,11 @@ if (firebaseReady) {
     }
   }
 
- window.toggleUserStatus = async (uid, currentStatus) => {
-  const statusLower = (currentStatus || '').toLowerCase();
-  const newStatus = statusLower === 'approved' ? 'pending' : 'approved';
-  
-  try {
+  window.toggleUserStatus = async (uid, currentStatus) => {
+    const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
     await db.collection('users').doc(uid).update({ status: newStatus });
     loadUserAccountsTable();
-  } catch (err) {
-    alert("Failed to update status: " + err.message);
-  }
-};
+  };
 
   window.updateUserRole = async (uid, newRole) => {
     await db.collection('users').doc(uid).update({ role: newRole });
