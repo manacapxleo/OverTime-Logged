@@ -275,38 +275,37 @@
 </div>
 
 <script>
-(function(){
-  const firebaseConfig={
-    apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
-    authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
-    projectId:"apo-pack-overtime-schedule",
-    storageBucket:"apo-pack-overtime-schedule.firebasestorage.app",
-    messagingSenderId:"55428287155",
-    appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
+(function () {
+  const firebaseConfig = {
+    apiKey: "AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
+    authDomain: "apo-pack-overtime-schedule.firebaseapp.com",
+    projectId: "apo-pack-overtime-schedule",
+    storageBucket: "apo-pack-overtime-schedule.firebasestorage.app",
+    messagingSenderId: "55428287155",
+    appId: "1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
-  
-let db = null, auth = null, currentUser = null, currentUserDoc = null;
-let docRef = null, rosterRef = null;
-let firebaseReady = false;
 
-try {
-  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    auth = firebase.auth();
-    docRef = db.collection('overtime').doc('shared-log');
-    rosterRef = db.collection('rosters');
-    firebaseReady = true;
+  let db = null, auth = null, currentUser = null, currentUserDoc = null;
+  let docRef = null, rosterRef = null;
+  let firebaseReady = false;
 
-    const syncStatus = document.getElementById('syncStatus');
-    if (syncStatus) syncStatus.innerText = "Firebase Connected";
+  try {
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+      docRef = db.collection('overtime').doc('shared-log');
+      rosterRef = db.collection('rosters');
+      firebaseReady = true;
+
+      const syncStatus = document.getElementById('syncStatus');
+      if (syncStatus) syncStatus.innerText = "Firebase Connected";
+    }
+  } catch (e) {
+    console.error('Firebase init failed:', e);
   }
-} catch (e) {
-  console.error('Firebase init failed', e);
-}
 
-
-  // --- Auth & Admin Tab Logic ---
+  // --- Auth & Admin Elements (Safe Query Selectors) ---
   const adminTabBtn = document.getElementById('adminTabBtn');
   const loginBtn = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -319,79 +318,120 @@ try {
   const showRegisterFormBtn = document.getElementById('showRegisterFormBtn');
   const authMsg = document.getElementById('authMsg');
 
-  // Modal Open / Close
-  loginBtn.addEventListener('click', () => loginModal.style.display = 'flex');
-  closeLoginModal.addEventListener('click', () => loginModal.style.display = 'none');
+  // Modal Open / Close (Guarded against null DOM elements)
+  if (loginBtn && loginModal) {
+    loginBtn.addEventListener('click', () => loginModal.style.display = 'flex');
+  }
 
-  showLoginFormBtn.addEventListener('click', () => {
-    loginForm.style.display = 'block';
-    registerForm.style.display = 'none';
-    showLoginFormBtn.style.color = '#007bff';
-    showLoginFormBtn.style.borderBottom = '2px solid #007bff';
-    showRegisterFormBtn.style.color = '#64748b';
-    showRegisterFormBtn.style.borderBottom = 'none';
-  });
+  if (closeLoginModal && loginModal) {
+    closeLoginModal.addEventListener('click', () => loginModal.style.display = 'none');
+  }
 
-  showRegisterFormBtn.addEventListener('click', () => {
-    registerForm.style.display = 'block';
-    loginForm.style.display = 'none';
-    showRegisterFormBtn.style.color = '#007bff';
-    showRegisterFormBtn.style.borderBottom = '2px solid #007bff';
-    showLoginFormBtn.style.color = '#64748b';
-    showLoginFormBtn.style.borderBottom = 'none';
-  });
+  if (showLoginFormBtn && loginForm && registerForm) {
+    showLoginFormBtn.addEventListener('click', () => {
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+      showLoginFormBtn.style.color = '#007bff';
+      showLoginFormBtn.style.borderBottom = '2px solid #007bff';
+      if (showRegisterFormBtn) {
+        showRegisterFormBtn.style.color = '#64748b';
+        showRegisterFormBtn.style.borderBottom = 'none';
+      }
+    });
+  }
+
+  if (showRegisterFormBtn && registerForm && loginForm) {
+    showRegisterFormBtn.addEventListener('click', () => {
+      registerForm.style.display = 'block';
+      loginForm.style.display = 'none';
+      showRegisterFormBtn.style.color = '#007bff';
+      showRegisterFormBtn.style.borderBottom = '2px solid #007bff';
+      if (showLoginFormBtn) {
+        showLoginFormBtn.style.color = '#64748b';
+        showLoginFormBtn.style.borderBottom = 'none';
+      }
+    });
+  }
 
   // User Sign-up
-  registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    authMsg.innerText = '';
-    const name = document.getElementById('regName').value;
-    const email = document.getElementById('regEmail').value;
-    const password = document.getElementById('regPassword').value;
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (authMsg) authMsg.innerText = '';
 
-    try {
-      const res = await auth.createUserWithEmailAndPassword(email, password);
-      const isMasterAdmin = email.toLowerCase() === 'admin@apopackhouse.com';
-      
-      await db.collection('users').doc(res.user.uid).set({
-        name: name,
-        email: email,
-        role: isMasterAdmin ? 'admin' : 'editor',
-        status: isMasterAdmin ? 'approved' : 'pending',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      const name = document.getElementById('regName')?.value.trim();
+      const email = document.getElementById('regEmail')?.value.trim();
+      const password = document.getElementById('regPassword')?.value;
 
-      authMsg.style.color = 'green';
-      authMsg.innerText = 'Account registered successfully!';
-      setTimeout(() => { loginModal.style.display = 'none'; }, 1000);
-    } catch(err) {
-      authMsg.style.color = 'red';
-      authMsg.innerText = err.message;
-    }
-  });
+      if (!email || !password) {
+        if (authMsg) {
+          authMsg.style.color = 'red';
+          authMsg.innerText = 'Email and password are required.';
+        }
+        return;
+      }
+
+      try {
+        const res = await auth.createUserWithEmailAndPassword(email, password);
+        const isMasterAdmin = email.toLowerCase() === 'admin@apopackhouse.com';
+
+        await db.collection('users').doc(res.user.uid).set({
+          name: name || '',
+          email: email.toLowerCase(),
+          role: isMasterAdmin ? 'admin' : 'editor',
+          status: isMasterAdmin ? 'approved' : 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        if (authMsg) {
+          authMsg.style.color = 'green';
+          authMsg.innerText = 'Account registered successfully!';
+        }
+        setTimeout(() => {
+          if (loginModal) loginModal.style.display = 'none';
+        }, 1000);
+      } catch (err) {
+        if (authMsg) {
+          authMsg.style.color = 'red';
+          authMsg.innerText = err.message;
+        }
+      }
+    });
+  }
 
   // User Login
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    authMsg.innerText = '';
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (authMsg) authMsg.innerText = '';
 
-    try {
-      await auth.signInWithEmailAndPassword(email, password);
-      authMsg.style.color = 'green';
-      authMsg.innerText = 'Logged in!';
-      setTimeout(() => { loginModal.style.display = 'none'; }, 800);
-    } catch(err) {
-      authMsg.style.color = 'red';
-      authMsg.innerText = err.message;
-    }
-  });
+      const email = document.getElementById('loginEmail')?.value.trim();
+      const password = document.getElementById('loginPassword')?.value;
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        if (authMsg) {
+          authMsg.style.color = 'green';
+          authMsg.innerText = 'Logged in!';
+        }
+        setTimeout(() => {
+          if (loginModal) loginModal.style.display = 'none';
+        }, 800);
+      } catch (err) {
+        if (authMsg) {
+          authMsg.style.color = 'red';
+          authMsg.innerText = err.message;
+        }
+      }
+    });
+  }
 
   // User Logout
-  logoutBtn.addEventListener('click', () => {
-    auth.signOut();
-  });
+  if (logoutBtn && auth) {
+    logoutBtn.addEventListener('click', () => {
+      auth.signOut();
+    });
+  }
 
 // Auth Observer
 let userDocUnsubscribe = null;
