@@ -276,7 +276,7 @@
 
 <script>
 (function(){
-  const firebaseConfig = {
+  const firebaseConfig={
     apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
     authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
     projectId:"apo-pack-overtime-schedule",
@@ -285,8 +285,7 @@
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
 
-  let db = null, auth = null, currentUser = null, currentUserDoc = null;
-  let docRef = null, rosterRef = null;
+let db = null, auth = null, currentUser = null;
   let firebaseReady = false;
 
   try {
@@ -294,9 +293,8 @@
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
       auth = firebase.auth();
-      docRef = db.collection('overtime').doc('shared-log');
-      rosterRef = db.collection('rosters');
       firebaseReady = true;
+
       const syncStatus = document.getElementById('syncStatus');
       if (syncStatus) syncStatus.innerText = "Firebase Connected";
     }
@@ -306,49 +304,60 @@
     if (syncStatus) syncStatus.innerText = "Offline Mode";
   }
 
-  /* ---------- AUTH STATE ---------- */
+  // Monitor Auth State Changes
   if (auth) {
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
+    auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
         try {
-          const userDoc = await db.collection('users').doc(user.uid).get();
+          // 1. Fetch live user status and role from 'users' collection
+          const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+
           if (userDoc.exists) {
-            currentUserDoc = userDoc.data();
             currentUser = {
-              uid: user.uid,
-              email: user.email,
-              ...currentUserDoc
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              ...userDoc.data() // Preserves 'status' (approved/pending) and 'role' (admin/editor)
             };
           } else {
+            console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
+            // Default fallback if document missing
             currentUser = {
-              uid: user.uid,
-              email: user.email,
-              name: user.email.split('@')[0],
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.email.split('@')[0],
               role: 'editor',
               status: 'pending'
             };
-            currentUserDoc = {};
           }
+
+          // 2. Optional: Fetch extra roster details if needed
+          const rosterQuery = await db.collection('rosters').where('email', '==', firebaseUser.email).get();
+          if (!rosterQuery.empty) {
+            const rosterData = rosterQuery.docs[0].data();
+            const userNameEl = document.getElementById('userName');
+            if (userNameEl) {
+              userNameEl.textContent = rosterData.name || currentUser.name || firebaseUser.email;
+            }
+          } else {
+            console.warn("No matching document found in 'rosters' for this email.");
+          }
+
         } catch (err) {
           console.error('Error loading user profile:', err);
-          currentUser = {
-            uid: user.uid,
-            email: user.email,
-            name: user.email.split('@')[0],
-            role: 'editor',
-            status: 'pending'
-          };
-          currentUserDoc = {};
         }
       } else {
         currentUser = null;
-        currentUserDoc = null;
       }
-      updateAuthUI();
+
+      // 3. Update the UI & permissions dynamically across the app
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+      }
     });
   }
-
-  /* ---------- DOM REFS ---------- */
+  
+  // --- Auth & Admin Tab Logic ---
+  const adminTabBtn = document.getElementById('adminTabBtn');
   const loginBtn = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
   const userBadge = document.getElementById('userBadge');
@@ -359,170 +368,151 @@
   const showLoginFormBtn = document.getElementById('showLoginFormBtn');
   const showRegisterFormBtn = document.getElementById('showRegisterFormBtn');
   const authMsg = document.getElementById('authMsg');
-  const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
 
-  /* ---------- MODAL ---------- */
-  if (loginBtn && loginModal) {
-    loginBtn.addEventListener('click', () => { loginModal.style.display = 'flex'; });
-  }
-  if (closeLoginModal && loginModal) {
-    closeLoginModal.addEventListener('click', () => { loginModal.style.display = 'none'; });
-  }
+  // Modal Open / Close
+  loginBtn.addEventListener('click', () => loginModal.style.display = 'flex');
+  closeLoginModal.addEventListener('click', () => loginModal.style.display = 'none');
 
-  if (showLoginFormBtn && showRegisterFormBtn && loginForm && registerForm) {
-    showLoginFormBtn.addEventListener('click', () => {
-      loginForm.style.display = 'block';
-      registerForm.style.display = 'none';
-      showLoginFormBtn.style.color = '#007bff';
-      showLoginFormBtn.style.borderBottom = '2px solid #007bff';
-      showRegisterFormBtn.style.color = '#64748b';
-      showRegisterFormBtn.style.borderBottom = 'none';
-      if (authMsg) authMsg.textContent = '';
-    });
-    showRegisterFormBtn.addEventListener('click', () => {
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'block';
-      showRegisterFormBtn.style.color = '#007bff';
-      showRegisterFormBtn.style.borderBottom = '2px solid #007bff';
-      showLoginFormBtn.style.color = '#64748b';
-      showLoginFormBtn.style.borderBottom = 'none';
-      if (authMsg) authMsg.textContent = '';
-    });
-  }
+  showLoginFormBtn.addEventListener('click', () => {
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    showLoginFormBtn.style.color = '#007bff';
+    showLoginFormBtn.style.borderBottom = '2px solid #007bff';
+    showRegisterFormBtn.style.color = '#64748b';
+    showRegisterFormBtn.style.borderBottom = 'none';
+  });
 
-  /* ---------- REGISTER ---------- */
-  if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!auth || !db) {
-        if (authMsg) { authMsg.style.color = 'red'; authMsg.textContent = 'Firebase not initialized.'; }
-        return;
-      }
-      const name = document.getElementById('regName').value.trim();
-      const email = document.getElementById('regEmail').value.trim().toLowerCase();
-      const password = document.getElementById('regPassword').value;
+  showRegisterFormBtn.addEventListener('click', () => {
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    showRegisterFormBtn.style.color = '#007bff';
+    showRegisterFormBtn.style.borderBottom = '2px solid #007bff';
+    showLoginFormBtn.style.color = '#64748b';
+    showLoginFormBtn.style.borderBottom = 'none';
+  });
 
-      try {
-        if (authMsg) authMsg.textContent = 'Registering...';
-        const res = await auth.createUserWithEmailAndPassword(email, password);
-        const isMasterAdmin = email === 'admin@apopackhouse.com';
-        await db.collection('users').doc(res.user.uid).set({
-          name: name,
-          email: email,
-          role: isMasterAdmin ? 'admin' : 'editor',
-          status: isMasterAdmin ? 'approved' : 'pending',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        if (authMsg) { authMsg.style.color = 'green'; authMsg.textContent = 'Registration successful! Wait for Admin approval.'; }
-        registerForm.reset();
-        setTimeout(() => { loginModal.style.display = 'none'; }, 1500);
-      } catch (err) {
-        if (authMsg) { authMsg.style.color = 'red'; authMsg.textContent = err.message; }
-      }
-    });
-  }
+  // User Sign-up
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authMsg.innerText = '';
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
 
-  /* ---------- LOGIN ---------- */
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!auth) {
-        if (authMsg) { authMsg.style.color = 'red'; authMsg.textContent = 'Firebase not initialized.'; }
-        return;
-      }
-      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-      const password = document.getElementById('loginPassword').value;
+    try {
+      const res = await auth.createUserWithEmailAndPassword(email, password);
+      const isMasterAdmin = email.toLowerCase() === 'admin@apopackhouse.com';
+      
+      await db.collection('users').doc(res.user.uid).set({
+        name: name,
+        email: email,
+        role: isMasterAdmin ? 'admin' : 'editor',
+        status: isMasterAdmin ? 'approved' : 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
 
-      try {
-        if (authMsg) authMsg.textContent = 'Logging in...';
-        await auth.signInWithEmailAndPassword(email, password);
-        if (authMsg) { authMsg.style.color = 'green'; authMsg.textContent = 'Logged in!'; }
-        setTimeout(() => { loginModal.style.display = 'none'; loginForm.reset(); if (authMsg) authMsg.textContent = ''; }, 800);
-      } catch (err) {
-        if (authMsg) { authMsg.style.color = 'red'; authMsg.textContent = err.message; }
-      }
-    });
-  }
+      authMsg.style.color = 'green';
+      authMsg.innerText = 'Account registered successfully!';
+      setTimeout(() => { loginModal.style.display = 'none'; }, 1000);
+    } catch(err) {
+      authMsg.style.color = 'red';
+      authMsg.innerText = err.message;
+    }
+  });
 
-  /* ---------- LOGOUT ---------- */
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      if (auth) auth.signOut();
-    });
-  }
+  // User Login
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authMsg.innerText = '';
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
 
-  /* ---------- AUTH UI UPDATE ---------- */
-  function updateAuthUI() {
-    const otPermissionNotice = document.getElementById('otPermissionNotice');
-    const otFormFields = document.getElementById('otFormFields');
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      authMsg.style.color = 'green';
+      authMsg.innerText = 'Logged in!';
+      setTimeout(() => { loginModal.style.display = 'none'; }, 800);
+    } catch(err) {
+      authMsg.style.color = 'red';
+      authMsg.innerText = err.message;
+    }
+  });
 
-    if (currentUser) {
-      if (loginBtn) loginBtn.style.display = 'none';
-      if (logoutBtn) logoutBtn.style.display = 'inline-block';
-      if (userBadge) {
-        userBadge.style.display = 'inline-block';
-        userBadge.textContent = `${currentUser.name || currentUser.email} (${currentUser.role?.toUpperCase()})`;
-      }
-      if (adminTabBtn) {
-        adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-      }
+  // User Logout
+  logoutBtn.addEventListener('click', () => {
+    auth.signOut();
+  });
 
-      const canEdit = currentUser.role === 'admin' || currentUser.status === 'approved';
-      if (canEdit) {
-        if (otPermissionNotice) otPermissionNotice.style.display = 'none';
-        if (otFormFields) {
-          otFormFields.style.opacity = '1';
-          otFormFields.style.pointerEvents = 'auto';
+ // Auth Observer
+  if (firebaseReady) {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
+
+        try {
+          // Fetch Live User Data from Firestore
+          const userDoc = await db.collection('users').doc(user.uid).get();
+
+          if (userDoc.exists) {
+            // Assign to BOTH global variables so all UI scripts share the same status
+            currentUserDoc = userDoc.data();
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              ...currentUserDoc
+            };
+
+            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
+            userBadge.style.display = 'inline-block';
+
+            if (currentUser.role === 'admin') {
+              adminTabBtn.classList.remove('hidden');
+              loadUserAccountsTable();
+            } else {
+              adminTabBtn.classList.add('hidden');
+              // If viewing admin tab, force fallback to roster
+              document.getElementById('rosterTab')?.classList.remove('hidden');
+              document.getElementById('adminTab')?.classList.add('hidden');
+            }
+          } else {
+            console.warn('No Firestore document found for user UID:', user.uid);
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              name: user.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+            currentUserDoc = currentUser;
+          }
+        } catch (err) {
+          console.error('Error loading user profile:', err);
         }
       } else {
-        if (otPermissionNotice) {
-          otPermissionNotice.style.display = 'block';
-          otPermissionNotice.innerHTML = '⌛ <strong>Approval Pending:</strong> Your account requires Admin approval before you can edit overtime.';
-        }
-        if (otFormFields) {
-          otFormFields.style.opacity = '0.4';
-          otFormFields.style.pointerEvents = 'none';
-        }
+        currentUser = null;
+        currentUserDoc = null;
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        userBadge.style.display = 'none';
+        adminTabBtn.classList.add('hidden');
+        document.getElementById('rosterTab')?.classList.remove('hidden');
+        document.getElementById('adminTab')?.classList.add('hidden');
       }
 
-      if (currentUser.role === 'admin') {
-        loadUserAccountsTable();
+      // Trigger permission and UI refresh with updated user object
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
       }
-    } else {
-      if (loginBtn) loginBtn.style.display = 'inline-block';
-      if (logoutBtn) logoutBtn.style.display = 'none';
-      if (userBadge) userBadge.style.display = 'none';
-      if (adminTabBtn) adminTabBtn.style.display = 'none';
-
-      if (otPermissionNotice) {
-        otPermissionNotice.style.display = 'block';
-        otPermissionNotice.innerHTML = '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
-      }
-      if (otFormFields) {
-        otFormFields.style.opacity = '0.4';
-        otFormFields.style.pointerEvents = 'none';
-      }
-
-      const rosterTab = document.getElementById('rosterTab');
-      const adminTab = document.getElementById('adminTab');
-      const rosterTabBtn = document.querySelector('.tab-btn[data-tab="roster"]');
-      if (adminTab && !adminTab.classList.contains('hidden')) {
-        if (rosterTab) rosterTab.classList.remove('hidden');
-        if (adminTab) adminTab.classList.add('hidden');
-        document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
-        if (rosterTabBtn) rosterTabBtn.classList.add('active');
-      }
-    }
-
-    if (typeof renderPanel === 'function') renderPanel();
-    if (typeof renderCalendar === 'function') renderCalendar();
+    });
   }
-
-  /* ---------- ADMIN USER TABLE ---------- */
+  
+  // Fetch Users List for Admin View
   async function loadUserAccountsTable() {
     const tbody = document.getElementById('userAccountsTableBody');
-    if (!tbody || !db) return;
+    if(!tbody) return;
     tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;">Loading users...</td></tr>';
+    
     try {
       const snap = await db.collection('users').get();
       tbody.innerHTML = '';
@@ -531,7 +521,7 @@
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid #e2e8f0';
         tr.innerHTML = `
-          <td style="padding:8px;"><strong>${escapeHtml(u.name || 'N/A')}</strong><br><small style="color:#64748b">${escapeHtml(u.email)}</small></td>
+          <td style="padding:8px;"><strong>${u.name || 'N/A'}</strong><br><small style="color:#64748b">${u.email}</small></td>
           <td style="padding:8px;">
             <select onchange="updateUserRole('${doc.id}', this.value)" style="padding:4px; border-radius:4px;">
               <option value="editor" ${u.role === 'editor' ? 'selected' : ''}>Editor</option>
@@ -552,24 +542,22 @@
         tbody.appendChild(tr);
       });
     } catch(err) {
-      tbody.innerHTML = `<tr><td colspan="4" style="padding:10px; color:red;">Failed to load users: ${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="padding:10px; color:red;">Failed to load users: ${err.message}</td></tr>`;
     }
   }
 
   window.toggleUserStatus = async (uid, currentStatus) => {
-    if (!db) return;
     const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
     await db.collection('users').doc(uid).update({ status: newStatus });
     loadUserAccountsTable();
   };
 
   window.updateUserRole = async (uid, newRole) => {
-    if (!db) return;
     await db.collection('users').doc(uid).update({ role: newRole });
     loadUserAccountsTable();
   };
 
-  /* ---------- TABS ---------- */
+  // Tab switcher
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
@@ -581,14 +569,19 @@
     });
   });
 
-  /* ---------- ROSTER & CALENDAR ---------- */
-  (function () {
-    let currentRoster = null, rosterSource = 'hardcoded';
-    let data = {};
-    let current = new Date();
-    current.setDate(1);
-    let selectedDate = null, selectedShift = null, selectedEmployee = null, parsedCsvRoster = null;
+(function () {
+  let currentRoster = null,
+    rosterSource = 'hardcoded',
+    data = {},
+    current = new Date();
+  current.setDate(1);
 
+  let selectedDate = null,
+    selectedShift = null,
+    selectedEmployee = null,
+    parsedCsvRoster = null;
+
+  
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const pad = (n) => String(n).padStart(2, '0');
@@ -1169,23 +1162,42 @@ function dayTotal(key) {
 
   // --- FIREBASE LOGIN HANDLER ---
 if (loginForm) {
- // User Login
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    authMsg.innerText = '';
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value;
 
-    try {
-      await auth.signInWithEmailAndPassword(email, password);
-      authMsg.style.color = 'green';
-      authMsg.innerText = 'Logged in!';
-      setTimeout(() => { loginModal.style.display = 'none'; }, 800);
-    } catch(err) {
-      authMsg.style.color = 'red';
-      authMsg.innerText = err.message;
-    }
-  });
+      if (!auth) {
+        alert('Firebase Auth is not initialized.');
+        return;
+      }
+
+      try {
+        if (authMsg) authMsg.textContent = 'Logging in...';
+
+        // 1. Authenticate with Firebase Auth
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // 2. Direct fetch from Firestore to guarantee state
+        const userDoc = await db.collection('users').doc(user.uid).get();
+
+        if (userDoc.exists) {
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            ...userDoc.data()
+          };
+        } else {
+          // Default fallback for admin account
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            name: 'Admin',
+            role: 'admin',
+            status: 'approved'
+          };
+        }
 
         // 3. Immediately refresh UI permissions
         updateAuthUI();
