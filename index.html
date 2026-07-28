@@ -415,7 +415,7 @@ let db = null, auth = null, currentUser = null;
             userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
             userBadge.style.display = 'inline-block';
 
-            if (currentUser.role === 'admin' || currentUser.role === 'editor') {
+            if (currentUser.role === 'admin') {
               adminTabBtn.classList.remove('hidden');
               loadUserAccountsTable();
             } else {
