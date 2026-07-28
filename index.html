@@ -394,119 +394,122 @@ try {
   });
 
 // Auth Observer
-  let userDocUnsubscribe = null;
-  let isAuthLoaded = false;
-  if (firebaseReady) {
-    auth.onAuthStateChanged(async (user) => {
-      const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
+let userDocUnsubscribe = null;
+let isAuthLoaded = false;
 
-      if (user) {
-        
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'block';
-        
-        try {
-        // Fetch user doc directly on refresh
+if (firebaseReady) {
+  auth.onAuthStateChanged(async (user) => {
+    const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
+
+    if (user) {
+      if (loginBtn) loginBtn.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'block';
+
+      try {
+        // Fetch user doc directly from Firestore on refresh
         const userDoc = await db.collection('users').doc(user.uid).get();
-        
-          if (userDoc.exists) {
- const data = userDoc.data();
+
+        if (userDoc.exists) {
+          const data = userDoc.data();
           currentUser = {
             uid: user.uid,
             email: user.email,
-              ...data,
-            };
-            
-            if (userBadge) {
-              userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
-              userBadge.style.display = 'inline-block';
-            }
+            ...data,
+            // Ensure status and role are clean lowercased strings
+            status: (data.status || 'pending').toLowerCase(),
+            role: (data.role || 'editor').toLowerCase()
+          };
 
-            if (adminTabBtn) {
-              adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-            }
-
-            if (currentUser.role === 'admin' && typeof loadUserAccountsTable === 'function') {
-              loadUserAccountsTable();
-            }
-          } else {
-            console.warn('No Firestore document found for user UID:', user.uid);
-            currentUser = {
-              uid: user.uid,
-              email: user.email,
-              role: 'editor',
-              status: 'pending'
-            };
+          if (userBadge) {
+            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.status.toUpperCase()})`;
+            userBadge.style.display = 'inline-block';
           }
-        } catch (err) {
-          console.error('Error loading user profile:', err);
-        }
-      } else {
-        currentUser = null;
-         currentUser = null;
-        currentUserDoc = null;
-        if (loginBtn) loginBtn.style.display = 'inline-block';
-        if (logoutBtn) logoutBtn.style.display = 'none';
-        if (userBadge) userBadge.style.display = 'none';
-        if (adminTabBtn) adminTabBtn.style.display = 'none';
-      }
 
-      // Trigger UI permission refresh (Unlocks Overtime form if status === 'approved')
-     isAuthLoaded = true;
-    if (typeof updateAuthUI === 'function') {
+          if (adminTabBtn) {
+            adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+          }
+
+          if (currentUser.role === 'admin' && typeof loadUserAccountsTable === 'function') {
+            loadUserAccountsTable();
+          }
+        } else {
+          console.warn('No Firestore document found for user UID:', user.uid);
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            role: 'editor',
+            status: 'pending'
+          };
+        }
+      } catch (err) {
+        console.error('Error loading user profile:', err);
       }
-      // CRITICAL: Re-render day details after currentUser is 100% loaded
-    if (typeof selectedDate !== 'undefined') {
-      renderDayDetails(selectedDate);
     } else {
+      currentUser = null;
+      currentUserDoc = null;
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (userBadge) userBadge.style.display = 'none';
+      if (adminTabBtn) adminTabBtn.style.display = 'none';
+    }
+
+    isAuthLoaded = true;
+
+    // 1. ALWAYS update the permission UI status
+    if (typeof updateAuthUI === 'function') {
       updateAuthUI();
     }
-    });
-  }
-  
-  // Fetch Users List for Admin View
-  async function loadUserAccountsTable() {
-    const tbody = document.getElementById('userAccountsTableBody');
-    if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;">Loading users...</td></tr>';
-    
-    try {
-      const snap = await db.collection('users').get();
-      tbody.innerHTML = '';
-      snap.forEach((doc) => {
-        const u = doc.data();
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid #e2e8f0';
-        tr.innerHTML = `
-          <td style="padding:8px;"><strong>${u.name || 'N/A'}</strong><br><small style="color:#64748b">${u.email}</small></td>
-          <td style="padding:8px;">
-            <select onchange="updateUserRole('${doc.id}', this.value)" style="padding:4px; border-radius:4px;">
-              <option value="editor" ${u.role === 'editor' ? 'selected' : ''}>Editor</option>
-              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
-          </td>
-          <td style="padding:8px;">
-            <span style="padding: 2px 6px; border-radius:4px; font-size:12px; background:${u.status === 'approved' ? '#dcfce7' : '#fef3c7'}; color:${u.status === 'approved' ? '#166534' : '#92400e'}">
-              ${u.status || 'pending'}
-            </span>
-          </td>
-          <td style="padding:8px;">
-            <button onclick="toggleUserStatus('${doc.id}', '${u.status}')" style="padding:4px 8px; font-size:12px; cursor:pointer; background:#3b82f6; color:white; border:none; border-radius:4px;">
-              ${u.status === 'approved' ? 'Revoke' : 'Approve'}
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } catch(err) {
-      tbody.innerHTML = `<tr><td colspan="4" style="padding:10px; color:red;">Failed to load users: ${err.message}</td></tr>`;
+
+    // 2. Re-render day details if a calendar date is active
+    if (typeof selectedDate !== 'undefined' && typeof renderDayDetails === 'function') {
+      renderDayDetails(selectedDate);
     }
+  });
+}
+
+// Fetch Users List for Admin View
+async function loadUserAccountsTable() {
+  const tbody = document.getElementById('userAccountsTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;">Loading users...</td></tr>';
+
+  try {
+    const snap = await db.collection('users').get();
+    tbody.innerHTML = '';
+    snap.forEach((doc) => {
+      const u = doc.data();
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #e2e8f0';
+      tr.innerHTML = `
+        <td style="padding:8px;"><strong>${u.name || 'N/A'}</strong><br><small style="color:#64748b">${u.email}</small></td>
+        <td style="padding:8px;">
+          <select onchange="updateUserRole('${doc.id}', this.value)" style="padding:4px; border-radius:4px;">
+            <option value="editor" ${(u.role || '').toLowerCase() === 'editor' ? 'selected' : ''}>Editor</option>
+            <option value="admin" ${(u.role || '').toLowerCase() === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+        </td>
+        <td style="padding:8px;">
+          <span style="padding: 2px 6px; border-radius:4px; font-size:12px; background:${(u.status || '').toLowerCase() === 'approved' ? '#dcfce7' : '#fef3c7'}; color:${(u.status || '').toLowerCase() === 'approved' ? '#166534' : '#92400e'}">
+            ${u.status || 'pending'}
+          </span>
+        </td>
+        <td style="padding:8px;">
+          <button onclick="toggleUserStatus('${doc.id}', '${u.status}')" style="padding:4px 8px; font-size:12px; cursor:pointer; background:#3b82f6; color:white; border:none; border-radius:4px;">
+            ${(u.status || '').toLowerCase() === 'approved' ? 'Revoke' : 'Approve'}
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:10px; color:red;">Failed to load users: ${err.message}</td></tr>`;
   }
+}
 
 window.toggleUserStatus = async (uid, currentStatus) => {
   const statusLower = (currentStatus || '').toLowerCase();
   const newStatus = statusLower === 'approved' ? 'pending' : 'approved';
-  
+
   try {
     await db.collection('users').doc(uid).update({ status: newStatus });
     loadUserAccountsTable();
@@ -515,10 +518,14 @@ window.toggleUserStatus = async (uid, currentStatus) => {
   }
 };
 
-  window.updateUserRole = async (uid, newRole) => {
+window.updateUserRole = async (uid, newRole) => {
+  try {
     await db.collection('users').doc(uid).update({ role: newRole });
     loadUserAccountsTable();
-  };
+  } catch (err) {
+    alert("Failed to update role: " + err.message);
+  }
+};
 
   // Tab switcher
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
