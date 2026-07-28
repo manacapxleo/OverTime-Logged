@@ -1545,19 +1545,15 @@ if (nextBtn) {
     }
   }
 
-  function renderDayDetails(selectedDate) {
+ function renderDayDetails(selectedDate) {
   // ... date heading rendering ...
-console.log("DEBUG AUTH UI:", {
-  currentUser: currentUser,
-  role: currentUser?.role,
-  status: currentUser?.status,
-  isLoggedIn: !!currentUser
-});
   const otPermissionNotice = document.getElementById('otPermissionNotice');
   const otFormFields = document.getElementById('otFormFields');
 
-  // Check if currentUser is populated and approved
-  const isApproved = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userStatus = (currentUser?.status || '').toLowerCase();
+
+  const isApproved = currentUser && (userRole === 'admin' || userStatus === 'approved');
 
   if (isApproved) {
     if (otPermissionNotice) otPermissionNotice.style.display = 'none';
@@ -1615,9 +1611,13 @@ console.log("DEBUG AUTH UI:", {
         }
         if (!roster[dept]) return;
         const emp = roster[dept].find((x) => x.name === name);
-        if (emp) {
-          emp.shifts[day] = val;
-        }
+  if (emp) {
+  // Ensure array has enough elements before direct index assignment
+  while (emp.shifts.length <= day) {
+    emp.shifts.push('');
+  }
+  emp.shifts[day] = val;
+}
       });
     });
   }
