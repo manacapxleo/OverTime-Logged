@@ -401,14 +401,14 @@ try {
       const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
 
       if (user) {
-try {
-        // Fetch user doc directly on refresh
-        const userDoc = await db.collection('users').doc(user.uid).get();
         
         if (loginBtn) loginBtn.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'block';
-
-
+        
+        try {
+        // Fetch user doc directly on refresh
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        
           if (userDoc.exists) {
  const data = userDoc.data();
           currentUser = {
@@ -416,7 +416,6 @@ try {
             email: user.email,
               ...data,
             };
-        status: (data.status || 'pending').toLowerCase()
             
             if (userBadge) {
               userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
@@ -444,12 +443,19 @@ try {
         }
       } else {
         currentUser = null;
+         currentUser = null;
+        currentUserDoc = null;
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (userBadge) userBadge.style.display = 'none';
         if (adminTabBtn) adminTabBtn.style.display = 'none';
       }
 
       // Trigger UI permission refresh (Unlocks Overtime form if status === 'approved')
      isAuthLoaded = true;
-      updateAuthUI();
+    if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+      }
     });
   }
   
