@@ -394,50 +394,33 @@ try {
   });
 
 // Auth Observer
-  let userDocUnsubscribe = null;
-  if (firebaseReady) {
-    auth.onAuthStateChanged(async (user) => {
-      const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
+ let isAuthLoaded = false;
+if (firebaseReady) {
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        // Fetch user doc directly on refresh
+        const userDoc = await db.collection('users').doc(user.uid).get();
 
-      if (user) {
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'block';
-
-        try {
-          // Fetch user document from Firestore
-          const userDoc = await db.collection('users').doc(user.uid).get();
-
-          if (userDoc.exists) {
-            currentUserDoc = userDoc.data();
-            currentUser = {
-              uid: user.uid,
-              email: user.email,
-              ...currentUserDoc
-            };
-
-            if (userBadge) {
-              userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
-              userBadge.style.display = 'inline-block';
-            }
-
-            if (adminTabBtn) {
-              adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-            }
-
-            if (currentUser.role === 'admin' && typeof loadUserAccountsTable === 'function') {
-              loadUserAccountsTable();
-            }
-          } else {
-            console.warn('No Firestore document found for user UID:', user.uid);
-            currentUser = {
-              uid: user.uid,
-              email: user.email,
-              name: user.email.split('@')[0],
-              role: 'editor',
-              status: 'pending'
-            };
-          }
-        } catch (err) {
+        if (userDoc.exists) {
+          const data = userDoc.data();
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            ...data,
+            // Force lowercase so checks like 'approved' never fail
+            status: (data.status || 'pending').toLowerCase()
+          };
+        } else {
+          // If no doc exists, create fallback
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            role: 'editor',
+            status: 'pending'
+          };
+        }
+      } catch (err) {
           console.error('Error loading user profile:', err);
         }
       } else {
