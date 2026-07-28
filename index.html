@@ -1645,47 +1645,63 @@ html += `<tr data-dept="${escapeAttr(dept)}" data-name="${escapeAttr(emp.name)}"
   };
 
   
-  const saveManualBtn = document.getElementById('saveManualBtn');
+const saveManualBtn = document.getElementById('saveManualBtn');
   if (saveManualBtn) {
     saveManualBtn.addEventListener('click', async () => {
       const roster = extractFromEditor();
-      if (roster) await saveRosterToFirebase(roster);
+      if (roster) {
+        parsedCsvRoster = roster; // Keep global roster in sync
+        await saveRosterToFirebase(roster);
+      }
     });
   }
-  
+
   const saveManualLocalBtn = document.getElementById('saveManualLocalBtn');
   if (saveManualLocalBtn) {
     saveManualLocalBtn.addEventListener('click', () => {
       const roster = extractFromEditor();
-      if (roster) saveRosterToLocal(roster);
+      if (roster) {
+        parsedCsvRoster = roster; // Keep global roster in sync
+        saveRosterToLocal(roster);
+      }
     });
   }
 
   function extractFromEditor() {
     const container = document.getElementById('manualEditor');
     if (!container) return null;
+
     const table = container.querySelector('table');
     if (!table) return null;
+
     const roster = {};
     table.querySelectorAll('tbody tr').forEach((row) => {
       const dept = row.dataset.dept;
       const name = row.dataset.name;
+
+      if (!dept || !name) return; // Guard against empty or malformed dataset rows
+
       if (!roster[dept]) roster[dept] = [];
       const shifts = [];
+
       row.querySelectorAll('input[data-day]').forEach((input) => {
         shifts.push(input.value.trim().toUpperCase() || '');
       });
+
       roster[dept].push({ name, shifts });
     });
-    return roster;
+
+    return Object.keys(roster).length > 0 ? roster : null;
   }
 
-  (function init() {
-    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-      listenForChanges(() => {
-        renderRoster();
-        renderCalendar();
-        renderPanel();
+ (function init() {
+    if (typeof loadRoster === 'function') {
+      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+        if (typeof listenForChanges === 'function') {
+          listenForChanges(() => {
+            if (typeof renderRoster === 'function') renderRoster();
+            if (typeof renderCalendar === 'function') renderCalendar();
+            if (typeof renderPanel === 'function') renderPanel();
       });
     });
     })();
