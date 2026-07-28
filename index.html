@@ -398,7 +398,8 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
       if (user) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
-
+        console.log("Firestore data:", userDoc.data());
+        console.log("Current user:", currentUser);
         try {
           // Fetch Live User Data from Firestore
           const userDoc = await db.collection('users').doc(user.uid).get();
@@ -1149,6 +1150,7 @@ console.log("Firestore data:", userDoc.data());
         }
 
         // 3. Immediately refresh UI permissions
+        console.log("updateAuthUI currentUser:", currentUser);
         updateAuthUI();
 
         if (loginModal) loginModal.style.display = 'none';
@@ -1270,17 +1272,6 @@ console.log("Firestore data:", userDoc.data());
     });
   }
 
-
-  window.rejectUser = function (index) {
-    accounts[index].status = 'pending';
-    saveAccounts();
-    renderAdminAccountTable();
-    if (currentUser && currentUser.email === accounts[index].email) {
-      currentUser.status = 'pending';
-      localStorage.setItem('apo_current_user', JSON.stringify(currentUser));
-      updateAuthUI();
-    }
-  };
 
   window.deleteOvertimeEntry = async function (dateKey, entryId) {
   // Security Check: Block if not logged in or not approved
