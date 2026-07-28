@@ -304,58 +304,7 @@ let db = null, auth = null, currentUser = null;
     if (syncStatus) syncStatus.innerText = "Offline Mode";
   }
 
-  // Monitor Auth State Changes
-  if (auth) {
-    auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          // 1. Fetch live user status and role from 'users' collection
-          const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
 
-          if (userDoc.exists) {
-            currentUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              ...userDoc.data() // Preserves 'status' (approved/pending) and 'role' (admin/editor)
-            };
-          } else {
-            console.warn('User document does not exist in Firestore for UID:', firebaseUser.uid);
-            // Default fallback if document missing
-            currentUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.email.split('@')[0],
-              role: 'editor',
-              status: 'pending'
-            };
-          }
-
-          // 2. Optional: Fetch extra roster details if needed
-          const rosterQuery = await db.collection('rosters').where('email', '==', firebaseUser.email).get();
-          if (!rosterQuery.empty) {
-            const rosterData = rosterQuery.docs[0].data();
-            const userNameEl = document.getElementById('userName');
-            if (userNameEl) {
-              userNameEl.textContent = rosterData.name || currentUser.name || firebaseUser.email;
-            }
-          } else {
-            console.warn("No matching document found in 'rosters' for this email.");
-          }
-
-        } catch (err) {
-          console.error('Error loading user profile:', err);
-        }
-      } else {
-        currentUser = null;
-      }
-
-      // 3. Update the UI & permissions dynamically across the app
-      if (typeof updateAuthUI === 'function') {
-        updateAuthUI();
-      }
-    });
-  }
-  
   // --- Auth & Admin Tab Logic ---
   const adminTabBtn = document.getElementById('adminTabBtn');
   const loginBtn = document.getElementById('loginBtn');
@@ -443,7 +392,69 @@ let db = null, auth = null, currentUser = null;
     auth.signOut();
   });
 
+ // Auth Observer
+  if (firebaseReady) {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
 
+        try {
+          // Fetch Live User Data from Firestore
+          const userDoc = await db.collection('users').doc(user.uid).get();
+
+          if (userDoc.exists) {
+            // Assign to BOTH global variables so all UI scripts share the same status
+            currentUserDoc = userDoc.data();
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              ...currentUserDoc
+            };
+
+            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
+            userBadge.style.display = 'inline-block';
+
+            if (currentUser.role === 'admin') {
+              adminTabBtn.classList.remove('hidden');
+              loadUserAccountsTable();
+            } else {
+              adminTabBtn.classList.add('hidden');
+              // If viewing admin tab, force fallback to roster
+              document.getElementById('rosterTab')?.classList.remove('hidden');
+              document.getElementById('adminTab')?.classList.add('hidden');
+            }
+          } else {
+            console.warn('No Firestore document found for user UID:', user.uid);
+            currentUser = {
+              uid: user.uid,
+              email: user.email,
+              name: user.email.split('@')[0],
+              role: 'editor',
+              status: 'pending'
+            };
+            currentUserDoc = currentUser;
+          }
+        } catch (err) {
+          console.error('Error loading user profile:', err);
+        }
+      } else {
+        currentUser = null;
+        currentUserDoc = null;
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        userBadge.style.display = 'none';
+        adminTabBtn.classList.add('hidden');
+        document.getElementById('rosterTab')?.classList.remove('hidden');
+        document.getElementById('adminTab')?.classList.add('hidden');
+      }
+
+      // Trigger permission and UI refresh with updated user object
+      if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+      }
+    });
+  }
   
   // Fetch Users List for Admin View
   async function loadUserAccountsTable() {
