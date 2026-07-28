@@ -1195,129 +1195,118 @@ console.log("Firestore data:", userDoc.data());
     });
   }
  function updateAuthUI() {
-    const otPermissionNotice = document.getElementById('otPermissionNotice');
-    const otFormFields = document.getElementById('otFormFields');
+  const otPermissionNotice = document.getElementById('otPermissionNotice');
+  const otFormFields = document.getElementById('otFormFields');
+  const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
+
+  if (currentUser) {
+    if (typeof loginBtn !== 'undefined' && loginBtn) loginBtn.style.display = 'none';
+    if (typeof logoutBtn !== 'undefined' && logoutBtn) logoutBtn.style.display = 'inline-block';
     
-    // Select the Admin Tab button
-    const adminTabBtn = document.querySelector('.tab-btn[data-tab="admin"]');
+    // Safely extract status and role with fallbacks
+    const userRole = (currentUser.role || 'editor').toLowerCase();
+    const userStatus = (currentUser.status || 'pending').toLowerCase();
 
-    if (currentUser) {
-      if (loginBtn) loginBtn.style.display = 'none';
-      if (logoutBtn) logoutBtn.style.display = 'inline-block';
-      if (userBadge) {
-        userBadge.style.display = 'inline-block';
-        userBadge.textContent = `${currentUser.name} (${currentUser.status.toUpperCase()})`;
-      }
+    if (typeof userBadge !== 'undefined' && userBadge) {
+      userBadge.style.display = 'inline-block';
+      userBadge.textContent = `${currentUser.name || currentUser.email} (${userStatus.toUpperCase()})`;
+    }
 
-      // SHOW ADMIN TAB BUTTON IF USER IS ADMIN
-      if (adminTabBtn) {
-        adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
-      }
+    // Show Admin Tab Button if user is Admin
+    if (adminTabBtn) {
+      adminTabBtn.style.display = userRole === 'admin' ? 'inline-block' : 'none';
+    }
 
-    const userStatus = (currentUser.status || '').toLowerCase();
-if (currentUser.role === 'admin' || userStatus === 'approved') {
-  if (otPermissionNotice) otPermissionNotice.style.display = 'none';
-  if (otFormFields) {
-    otFormFields.style.opacity = '1';
-    otFormFields.style.pointerEvents = 'auto';
-  }
-} else {
-        if (otPermissionNotice) {
-          otPermissionNotice.style.display = 'block';
-          otPermissionNotice.innerHTML =
-            '⌛ <strong>Approval Pending:</strong> Your account is registered, but requires Admin approval before you can edit overtime.';
-        }
-        if (otFormFields) {
-          otFormFields.style.opacity = '0.4';
-          otFormFields.style.pointerEvents = 'none';
-        }
+    // Check permissions (Admin OR Approved status)
+    if (userRole === 'admin' || userStatus === 'approved') {
+      if (otPermissionNotice) otPermissionNotice.style.display = 'none';
+      if (otFormFields) {
+        otFormFields.style.opacity = '1';
+        otFormFields.style.pointerEvents = 'auto';
       }
     } else {
-      if (loginBtn) loginBtn.style.display = 'inline-block';
-      if (logoutBtn) logoutBtn.style.display = 'none';
-      if (userBadge) userBadge.style.display = 'none';
-
-      // HIDE ADMIN TAB BUTTON WHEN LOGGED OUT
-      if (adminTabBtn) adminTabBtn.style.display = 'none';
-
       if (otPermissionNotice) {
         otPermissionNotice.style.display = 'block';
         otPermissionNotice.innerHTML =
-          '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
+          '⌛ <strong>Approval Pending:</strong> Your account is registered, but requires Admin approval before you can edit overtime.';
       }
       if (otFormFields) {
         otFormFields.style.opacity = '0.4';
         otFormFields.style.pointerEvents = 'none';
       }
     }
+  } else {
+    if (typeof loginBtn !== 'undefined' && loginBtn) loginBtn.style.display = 'inline-block';
+    if (typeof logoutBtn !== 'undefined' && logoutBtn) logoutBtn.style.display = 'none';
+    if (typeof userBadge !== 'undefined' && userBadge) userBadge.style.display = 'none';
+
+    if (adminTabBtn) adminTabBtn.style.display = 'none';
+
+    if (otPermissionNotice) {
+      otPermissionNotice.style.display = 'block';
+      otPermissionNotice.innerHTML =
+        '🔒 <strong>Permission Required:</strong> Please log in with an approved account to add overtime entries.';
+    }
+    if (otFormFields) {
+      otFormFields.style.opacity = '0.4';
+      otFormFields.style.pointerEvents = 'none';
+    }
+  }
+
   if (typeof renderPanel === 'function') renderPanel();
   if (typeof renderCalendar === 'function') renderCalendar();
-   
-  }
-  function renderAdminAccountTable() {
-    const tbody = document.getElementById('userAccountsTableBody');
-    if (!tbody) return;
+}
 
-    tbody.innerHTML = '';
+function renderAdminAccountTable() {
+  const tbody = document.getElementById('userAccountsTableBody');
+  if (!tbody || typeof accounts === 'undefined') return;
 
-    accounts.forEach((acc, index) => {
-      if (acc.role === 'admin') return;
+  tbody.innerHTML = '';
 
-      const tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid #e2e8f0';
+  accounts.forEach((acc, index) => {
+    if ((acc.role || '').toLowerCase() === 'admin') return;
 
-      const statusBadge =
-        acc.status === 'approved'
-          ? '<span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;">Approved</span>'
-          : '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:12px;">Pending</span>';
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #e2e8f0';
 
-      tr.innerHTML = `
-        <td style="padding:8px;"><strong>${acc.name}</strong><br><small style="color:#64748b;">${acc.email}</small></td>
-        <td style="padding:8px;">Editor</td>
-        <td style="padding:8px;">${statusBadge}</td>
-        <td style="padding:8px;">
-          ${
-            acc.status === 'pending'
-              ? `<button class="btn-approve" data-index="${index}" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Approve</button>`
-              : `<button class="btn-revoke" data-index="${index}" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Revoke</button>`
-          }
-        </td>
-      `;
-      tbody.appendChild(tr);
+    const accStatus = (acc.status || 'pending').toLowerCase();
+    const statusBadge =
+      accStatus === 'approved'
+        ? '<span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:12px;">Approved</span>'
+        : '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:12px; font-size:12px;">Pending</span>';
+
+    tr.innerHTML = `
+      <td style="padding:8px;"><strong>${acc.name || 'N/A'}</strong><br><small style="color:#64748b;">${acc.email}</small></td>
+      <td style="padding:8px;">Editor</td>
+      <td style="padding:8px;">${statusBadge}</td>
+      <td style="padding:8px;">
+        ${
+          accStatus === 'pending'
+            ? `<button class="btn-approve" data-index="${index}" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Approve</button>`
+            : `<button class="btn-revoke" data-index="${index}" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">Revoke</button>`
+        }
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('.btn-approve').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (typeof window.approveUser === 'function') window.approveUser(parseInt(btn.dataset.index));
     });
-
-    tbody.querySelectorAll('.btn-approve').forEach((btn) => {
-      btn.addEventListener('click', () => window.approveUser(parseInt(btn.dataset.index)));
+  });
+  tbody.querySelectorAll('.btn-revoke').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (typeof window.rejectUser === 'function') window.rejectUser(parseInt(btn.dataset.index));
     });
-    tbody.querySelectorAll('.btn-revoke').forEach((btn) => {
-      btn.addEventListener('click', () => window.rejectUser(parseInt(btn.dataset.index)));
-    });
-  }
+  });
+}
 
+window.deleteOvertimeEntry = async function (dateKey, entryId) {
+  const userRole = (currentUser?.role || '').toLowerCase();
+  const userStatus = (currentUser?.status || '').toLowerCase();
+  const isAllowed = currentUser && (userRole === 'admin' || userStatus === 'approved');
 
-  window.deleteOvertimeEntry = async function (dateKey, entryId) {
-  // Security Check: Block if not logged in or not approved
-  const isAllowed = currentUser && (currentUser.role === 'admin' || currentUser.status === 'approved');
-
-
-// 2. Only generate the "×" HTML string if the user is allowed
-const deleteButtonHtml = isAllowedToEdit
-  ? `<span class="delete-btn" onclick="deleteOvertimeEntry('${dateKey}', '${entry.id}')" style="cursor:pointer; color:#dc3545; font-weight:bold;">×</span>`
-  : '';
-
-// 3. Inject deleteButtonHtml into your entry row template:
-const entryRow = `
-  <div class="entry-item" style="display:flex; justify-content:space-between; align-items:center;">
-    <div>
-      <strong>${escapeHtml(entry.employeeName)}</strong> <span style="color:#d97706; font-weight:bold;">${entry.hours}h</span><br>
-      <small style="color:#64748b;">${entry.shiftLabel} • ${entry.start} - ${entry.end}</small>
-    </div>
-    <div>
-      ${deleteButtonHtml}
-    </div>
-  </div>
-`;
-    
   if (!isAllowed) {
     alert('Permission Denied: Only approved accounts can delete overtime entries.');
     return;
@@ -1326,23 +1315,19 @@ const entryRow = `
   if (!confirm('Are you sure you want to delete this entry?')) return;
 
   try {
-    // Read current data array
     const docSnap = await docRef.get();
     if (!docSnap.exists) return;
 
-    const data = docSnap.data();
-    const entries = data.entries || {};
+    const dataObj = docSnap.data();
+    const entries = dataObj.entries || {};
 
     if (entries[dateKey]) {
-      // Filter out the deleted entry ID
       entries[dateKey] = entries[dateKey].filter((item) => item.id !== entryId);
 
-      // If array is empty for that date, remove the key
       if (entries[dateKey].length === 0) {
         delete entries[dateKey];
       }
 
-      // Update Firestore database
       await docRef.update({ entries: entries });
     }
   } catch (error) {
@@ -1351,71 +1336,88 @@ const entryRow = `
   }
 };
 
-  updateAuthUI();
-  renderAdminAccountTable();
+// Initial Call
+updateAuthUI();
+renderAdminAccountTable();
 
-  const addBtn = document.getElementById('addBtn');
-  if (addBtn) {
-    addBtn.addEventListener('click', async () => {
-      if (!selectedDate) return;
-      const note = document.getElementById('noteInput').value.trim();
-      const msg = document.getElementById('formMsg');
-      if (!selectedEmployee) {
-        if (msg) msg.textContent = 'Select an employee first.';
-        return;
-      }
-      if (!selectedShift) {
-        if (msg) msg.textContent = 'Choose a shift first.';
-        return;
-      }
-      const shift = SHIFTS[selectedShift];
-      if (!data[selectedDate]) data[selectedDate] = [];
-      const alreadyLogged = data[selectedDate].some(
-        (e) => e.employeeName === selectedEmployee && e.shift === selectedShift
-      );
-      if (alreadyLogged) {
-        if (msg) msg.textContent = `${selectedEmployee} already has ${shift.label} logged.`;
-        return;
-      }
-      data[selectedDate].push({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        employeeName: selectedEmployee,
-        shift: selectedShift,
-        shiftLabel: shift.label,
-        start: shift.start,
-        end: shift.end,
-        hours: shift.hours,
-        note,
-      });
-      data[selectedDate].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-      await saveData();
-      document.getElementById('noteInput').value = '';
-      renderCalendar();
-      renderPanel();
-    });
-  }
+// Add Button Event Handler
+const addBtn = document.getElementById('addBtn');
+if (addBtn) {
+  addBtn.addEventListener('click', async () => {
+    const userRole = (currentUser?.role || '').toLowerCase();
+    const userStatus = (currentUser?.status || '').toLowerCase();
+    if (!currentUser || (userRole !== 'admin' && userStatus !== 'approved')) {
+      alert('Permission Required: You need an approved account to add overtime.');
+      return;
+    }
 
-  const prevBtn = document.getElementById('prevBtn');
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
-      current.setMonth(current.getMonth() - 1);
-      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-        if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
-        else renderRoster();
-      });
-    });
-  }
+    if (!selectedDate) return;
+    const noteInput = document.getElementById('noteInput');
+    const note = noteInput ? noteInput.value.trim() : '';
+    const msg = document.getElementById('formMsg');
 
-  const nextBtn = document.getElementById('nextBtn');
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      current.setMonth(current.getMonth() + 1);
-      loadRoster(current.getFullYear(), current.getMonth()).then(() => {
-        if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
-        else renderRoster();
-      });
+    if (typeof selectedEmployee === 'undefined' || !selectedEmployee) {
+      if (msg) msg.textContent = 'Select an employee first.';
+      return;
+    }
+    if (typeof selectedShift === 'undefined' || !selectedShift) {
+      if (msg) msg.textContent = 'Choose a shift first.';
+      return;
+    }
+
+    const shift = SHIFTS[selectedShift];
+    if (!data[selectedDate]) data[selectedDate] = [];
+    const alreadyLogged = data[selectedDate].some(
+      (e) => e.employeeName === selectedEmployee && e.shift === selectedShift
+    );
+    if (alreadyLogged) {
+      if (msg) msg.textContent = `${selectedEmployee} already has ${shift.label} logged.`;
+      return;
+    }
+
+    data[selectedDate].push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      employeeName: selectedEmployee,
+      shift: selectedShift,
+      shiftLabel: shift.label,
+      start: shift.start,
+      end: shift.end,
+      hours: shift.hours,
+      note,
     });
-  }
+
+    data[selectedDate].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+    await saveData();
+    if (noteInput) noteInput.value = '';
+    renderCalendar();
+    renderPanel();
+  });
+}
+
+// Navigation Event Handlers
+const prevBtn = document.getElementById('prevBtn');
+if (prevBtn) {
+  prevBtn.addEventListener('click', () => {
+    current.setMonth(current.getMonth() - 1);
+    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+      const calendarTab = document.getElementById('calendarTab');
+      if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
+      else renderRoster();
+    });
+  });
+}
+
+const nextBtn = document.getElementById('nextBtn');
+if (nextBtn) {
+  nextBtn.addEventListener('click', () => {
+    current.setMonth(current.getMonth() + 1);
+    loadRoster(current.getFullYear(), current.getMonth()).then(() => {
+      const calendarTab = document.getElementById('calendarTab');
+      if (calendarTab && !calendarTab.classList.contains('hidden')) renderCalendar();
+      else renderRoster();
+    });
+  });
+}
 
   function parseCsvInput(text) {
     const lines = text.trim().split('\n').filter((l) => l.trim());
