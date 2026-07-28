@@ -454,8 +454,13 @@ try {
       // Trigger UI permission refresh (Unlocks Overtime form if status === 'approved')
      isAuthLoaded = true;
     if (typeof updateAuthUI === 'function') {
-        updateAuthUI();
       }
+      // CRITICAL: Re-render day details after currentUser is 100% loaded
+    if (typeof selectedDate !== 'undefined') {
+      renderDayDetails(selectedDate);
+    } else {
+      updateAuthUI();
+    }
     });
   }
   
