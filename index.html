@@ -284,25 +284,26 @@
     messagingSenderId:"55428287155",
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
+  
+let db = null, auth = null, currentUser = null, currentUserDoc = null;
+let docRef = null, rosterRef = null;
+let firebaseReady = false;
 
-let db = null, auth = null, currentUser = null; let currentUserDoc = null;
-  let firebaseReady = false;
+try {
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    docRef = db.collection('overtime').doc('shared-log');
+    rosterRef = db.collection('rosters');
+    firebaseReady = true;
 
-  try {
-    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      auth = firebase.auth();
-      firebaseReady = true;
-
-      const syncStatus = document.getElementById('syncStatus');
-      if (syncStatus) syncStatus.innerText = "Firebase Connected";
-    }
-  } catch (e) {
-    console.error('Firebase init failed', e);
     const syncStatus = document.getElementById('syncStatus');
-    if (syncStatus) syncStatus.innerText = "Offline Mode";
+    if (syncStatus) syncStatus.innerText = "Firebase Connected";
   }
+} catch (e) {
+  console.error('Firebase init failed', e);
+}
 
 
   // --- Auth & Admin Tab Logic ---
@@ -395,19 +396,17 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
 // Auth Observer
   if (firebaseReady) {
     auth.onAuthStateChanged(async (user) => {
+      const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
+
       if (user) {
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'block';
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'block';
 
         try {
-          // 1. Fetch Live User Data from Firestore
+          // Fetch user document from Firestore
           const userDoc = await db.collection('users').doc(user.uid).get();
 
-          // 2. Log after userDoc is actually fetched
-          console.log("Firestore data exists:", userDoc.exists);
-
           if (userDoc.exists) {
-            // Assign user document data to global variables
             currentUserDoc = userDoc.data();
             currentUser = {
               uid: user.uid,
@@ -415,16 +414,17 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
               ...currentUserDoc
             };
 
-            userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.role || 'editor').toUpperCase()})`;
-            userBadge.style.display = 'inline-block';
+            if (userBadge) {
+              userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.status || 'pending').toUpperCase()})`;
+              userBadge.style.display = 'inline-block';
+            }
 
-            if (currentUser.role === 'admin') {
-              if (adminTabBtn) adminTabBtn.classList.remove('hidden');
+            if (adminTabBtn) {
+              adminTabBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+            }
+
+            if (currentUser.role === 'admin' && typeof loadUserAccountsTable === 'function') {
               loadUserAccountsTable();
-            } else {
-              if (adminTabBtn) adminTabBtn.classList.add('hidden');
-              document.getElementById('rosterTab')?.classList.remove('hidden');
-              document.getElementById('adminTab')?.classList.add('hidden');
             }
           } else {
             console.warn('No Firestore document found for user UID:', user.uid);
@@ -435,7 +435,6 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
               role: 'editor',
               status: 'pending'
             };
-            currentUserDoc = currentUser;
           }
         } catch (err) {
           console.error('Error loading user profile:', err);
@@ -443,15 +442,13 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
       } else {
         currentUser = null;
         currentUserDoc = null;
-        loginBtn.style.display = 'block';
-        logoutBtn.style.display = 'none';
-        userBadge.style.display = 'none';
-        if (adminTabBtn) adminTabBtn.classList.add('hidden');
-        document.getElementById('rosterTab')?.classList.remove('hidden');
-        document.getElementById('adminTab')?.classList.add('hidden');
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (userBadge) userBadge.style.display = 'none';
+        if (adminTabBtn) adminTabBtn.style.display = 'none';
       }
 
-      // 3. Trigger permission and UI refresh with updated user object
+      // Trigger UI permission refresh (Unlocks Overtime form if status === 'approved')
       if (typeof updateAuthUI === 'function') {
         updateAuthUI();
       }
