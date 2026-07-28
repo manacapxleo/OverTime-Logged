@@ -392,20 +392,22 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
     auth.signOut();
   });
 
- // Auth Observer
+// Auth Observer
   if (firebaseReady) {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'block';
-        console.log("Firestore data:", userDoc.data());
-        console.log("Current user:", currentUser);
+
         try {
-          // Fetch Live User Data from Firestore
+          // 1. Fetch Live User Data from Firestore
           const userDoc = await db.collection('users').doc(user.uid).get();
 
+          // 2. Log after userDoc is actually fetched
+          console.log("Firestore data exists:", userDoc.exists);
+
           if (userDoc.exists) {
-            // Assign to BOTH global variables so all UI scripts share the same status
+            // Assign user document data to global variables
             currentUserDoc = userDoc.data();
             currentUser = {
               uid: user.uid,
@@ -413,15 +415,14 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
               ...currentUserDoc
             };
 
-            userBadge.innerText = `${currentUser.name || user.email} (${currentUser.role.toUpperCase()})`;
+            userBadge.innerText = `${currentUser.name || user.email} (${(currentUser.role || 'editor').toUpperCase()})`;
             userBadge.style.display = 'inline-block';
 
             if (currentUser.role === 'admin') {
-              adminTabBtn.classList.remove('hidden');
+              if (adminTabBtn) adminTabBtn.classList.remove('hidden');
               loadUserAccountsTable();
             } else {
-              adminTabBtn.classList.add('hidden');
-              // If viewing admin tab, force fallback to roster
+              if (adminTabBtn) adminTabBtn.classList.add('hidden');
               document.getElementById('rosterTab')?.classList.remove('hidden');
               document.getElementById('adminTab')?.classList.add('hidden');
             }
@@ -440,16 +441,17 @@ let db = null, auth = null, currentUser = null; let currentUserDoc = null;
           console.error('Error loading user profile:', err);
         }
       } else {
+        currentUser = null;
         currentUserDoc = null;
         loginBtn.style.display = 'block';
         logoutBtn.style.display = 'none';
         userBadge.style.display = 'none';
-        adminTabBtn.classList.add('hidden');
+        if (adminTabBtn) adminTabBtn.classList.add('hidden');
         document.getElementById('rosterTab')?.classList.remove('hidden');
         document.getElementById('adminTab')?.classList.add('hidden');
       }
 
-      // Trigger permission and UI refresh with updated user object
+      // 3. Trigger permission and UI refresh with updated user object
       if (typeof updateAuthUI === 'function') {
         updateAuthUI();
       }
