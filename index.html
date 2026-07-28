@@ -435,7 +435,6 @@ try {
             currentUser = {
               uid: user.uid,
               email: user.email,
-              name: user.email.split('@')[0],
               role: 'editor',
               status: 'pending'
             };
@@ -445,17 +444,11 @@ try {
         }
       } else {
         currentUser = null;
-        currentUserDoc = null;
-        if (loginBtn) loginBtn.style.display = 'inline-block';
-        if (logoutBtn) logoutBtn.style.display = 'none';
-        if (userBadge) userBadge.style.display = 'none';
         if (adminTabBtn) adminTabBtn.style.display = 'none';
       }
 
       // Trigger UI permission refresh (Unlocks Overtime form if status === 'approved')
-      if (typeof updateAuthUI === 'function') {
-        updateAuthUI();
-      }
+     isAuthLoaded = true;
     });
   }
   
