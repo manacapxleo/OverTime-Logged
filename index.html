@@ -439,7 +439,6 @@ let db = null, auth = null, currentUser = null;
           console.error('Error loading user profile:', err);
         }
       } else {
-        currentUser = null;
         currentUserDoc = null;
         loginBtn.style.display = 'block';
         logoutBtn.style.display = 'none';
