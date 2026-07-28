@@ -394,6 +394,7 @@ try {
   });
 
 // Auth Observer
+  let userDocUnsubscribe = null;
   if (firebaseReady) {
     auth.onAuthStateChanged(async (user) => {
       const adminTabBtn = document.getElementById('adminTabBtn') || document.querySelector('.tab-btn[data-tab="admin"]');
