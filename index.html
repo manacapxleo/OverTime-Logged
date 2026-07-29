@@ -116,7 +116,7 @@
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="roster">Shift Roster</button>
     <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
-    <button class="tab-btn" data-tab="admin">Admin / Upload</button>
+    <button class="tab-btn" data-tab="admin">Upload Schedule</button>
   </div>
   <div id="rosterTab">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -160,7 +160,26 @@
     </div>
   </div>
   <div id="adminTab" class="hidden">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <div class="admin-grid">
+  <div class="bulk-actions">
+<div class="field">
+<label>Select Month</label>
+<input type="month" id="lockDate">
+</div>
+
+<button class="add-btn" id="lockMonthBtn">
+🔒 Lock Month
+</button>
+
+<button class="add-btn success" id="unlockMonthBtn">
+🔓 Unlock Month
+</button>
+
+</div>
+</div>
+<div class="form-msg" id="lockMsg"></div>
+      
       <div class="admin-card" style="grid-column:1/-1;">
         <h3>CSV / Excel Paste Upload</h3>
         <p>Copy your schedule from Excel and paste below. Format: <strong>DEPT, NAME, 1, 2, 3, RD, 1, 2...</strong> (one row per employee, shifts separated by commas). Use <code>RD</code> for Rest Day. First column = Department, Second = Name, rest = shifts for days 1-31.</p>
@@ -187,26 +206,16 @@
         </div>
         <div class="form-msg" id="manualMsg"></div>
       </div>
-      <div class="admin-card">
-        <h3>How It Works</h3>
-        <p><strong>Priority:</strong> Firebase cloud data &rarr; Local browser data &rarr; Hardcoded fallback</p>
-        <p>1. <strong>Firebase:</strong> Saves to cloud for all team members to see. Requires Firestore write permissions.</p>
-        <p>2. <strong>Local:</strong> Saves only in this browser. Others won't see it.</p>
-        <p>3. <strong>Hardcoded:</strong> Built-in July &amp; August 2026 schedules as fallback.</p>
-      </div>
-      <div class="admin-card">
-        <h3>Excel to CSV Tip</h3>
-        <p>In Excel, select your schedule table (including dept/name columns), copy, and paste directly into the text area above. The app will auto-detect the format.</p>
-        <p>You can also use tab-separated values - just paste from Excel and it will work.</p>
-      </div>
     </div>
+    </div>
+<div class="form-msg" id="lockMsg"></div>
+</div>
   </div>
 </div>
 <script>
 (function(){
   const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const ADMIN_PASSWORD = "leeyoo";
   const firebaseConfig={
     apiKey:"AIzaSyA3B1uvaCEhMF7kDN_cnxrNOREdlSBl1t8",
     authDomain:"apo-pack-overtime-schedule.firebaseapp.com",
@@ -219,10 +228,23 @@
   let db=null,
     docRef=null,
     rosterRef=null,
+    lockRef=null,
     firebaseReady=false,
     isAdmin=false;
   
-  try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
+  try{
+    if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){
+      firebase.initializeApp(firebaseConfig);
+       auth = firebase.auth();  
+      db=firebase.firestore();
+      docRef=db.collection('overtime').doc('shared-log');
+      rosterRef=db.collection('rosters');
+      lockRef=db.collection('overtime').doc('month-locks');
+      firebaseReady=true;
+    }
+  }catch(e){console.error('Firebase init failed',e)
+    ;}
+
 
   const HARDCODED_ROSTERS={
     '2026-07':{
@@ -240,7 +262,7 @@
   };
 
   let currentRoster=null,rosterSource='hardcoded',data={},current=new Date();current.setDate(1);
-  let selectedDate=null,selectedShift=null,selectedEmployee=null,parsedCsvRoster=null;
+  let selectedDate=null,selectedShift=null,selectedEmployee=null,parsedCsvRoster=null,lockedDates={},lockedMonths={};
   const pad=n=>String(n).padStart(2,'0');
   const dateKey=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
   const rosterKey=(y,m)=>`${y}-${pad(m+1)}`;
@@ -250,6 +272,29 @@
   function timeToMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
   function fmtTime(t){const[h,m]=t.split(':').map(Number);const period=h>=12?'PM':'AM';let h12=h%12;if(h12===0)h12=12;return`${h12}:${pad(m)} ${period}`;}
   function setStatus(text){const el=document.getElementById('syncStatus');if(el)el.textContent=text;}
+  
+auth.onAuthStateChanged(function(user){
+
+    if(user){
+
+        isAdmin = true;
+
+        console.log("Logged in:", user.email);
+
+        updateAdminUI();
+
+    }else{
+
+        isAdmin = false;
+
+        console.log("Logged out");
+
+        updateAdminUI();
+
+    }
+
+});
+  
 function updateAdminUI(){
 
     document.getElementById("loginBtn")
@@ -263,31 +308,45 @@ function updateAdminUI(){
 
 }
 
-document.getElementById("loginBtn").addEventListener("click",()=>{
+document.getElementById("loginBtn").addEventListener("click", async () => {
 
-    const password=prompt("Enter Admin Password");
+    const email = prompt("Enter Admin Email");
 
-    if(password===ADMIN_PASSWORD){
+    const password = prompt("Enter Password");
 
-        isAdmin=true;
+    if (!email || !password) return;
 
-        updateAdminUI();
+    try {
 
-        alert("Admin login successful.");
+        await auth.signInWithEmailAndPassword(email, password);
 
-    }else{
+        alert("Login successful.");
 
-        alert("Incorrect password.");
+        // Don't set isAdmin=true here.
+        // auth.onAuthStateChanged() will do that automatically.
+
+    } catch (err) {
+
+        alert("Login failed: " + err.message);
 
     }
 
 });
+  
 
-document.getElementById("logoutBtn").addEventListener("click",()=>{
+document.getElementById("logoutBtn").addEventListener("click", async () => {
 
-    isAdmin=false;
+    try {
 
-    updateAdminUI();
+        await auth.signOut();
+
+        alert("Logged out successfully.");
+
+    } catch (err) {
+
+        alert("Logout failed: " + err.message);
+
+    }
 
 });
   async function loadRoster(year,month){
@@ -349,14 +408,6 @@ document.getElementById("logoutBtn").addEventListener("click",()=>{
     btn.addEventListener('click',()=>{
       const tab=btn.dataset.tab;
       
-      // PASSWORD PROTECTION GATE FOR ADMIN TAB
-      if(tab==='admin') {
-        const passwordCheck = prompt("Enter Admin Password to continue:");
-        if (passwordCheck !== ADMIN_PASSWORD) {
-          alert("Access Denied: Incorrect Password.");
-          return; // Halts configuration and prevents switching tabs
-        }
-      }
 
       tabBtns.forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
@@ -386,7 +437,12 @@ document.getElementById("logoutBtn").addEventListener("click",()=>{
     container.querySelectorAll('.schedule-table tbody tr').forEach(row=>{row.addEventListener('click',(e)=>{if(e.target.tagName==='TD'&&e.target.dataset.day){const day=parseInt(e.target.dataset.day);const empName=row.dataset.emp;selectedDate=dateKey(current.getFullYear(),current.getMonth(),day);selectedEmployee=empName;tabBtns.forEach(b=>b.classList.remove('active'));document.querySelector('.tab-btn[data-tab="calendar"]').classList.add('active');rosterTab.classList.add('hidden');calendarTab.classList.remove('hidden');adminTab.classList.add('hidden');renderCalendar();renderPanel();}});});
   }
 
-  function renderCalendar(){const y=current.getFullYear(),m=current.getMonth();document.getElementById('monthLabel').textContent=`${MONTHS[m]} ${y}`;const firstDow=new Date(y,m,1).getDay();const daysInMonth=new Date(y,m+1,0).getDate();const body=document.getElementById('calendarBody');body.innerHTML='';let html='';const totalCells=Math.ceil((firstDow+daysInMonth)/7)*7;for(let i=0;i<totalCells;i++){if(i%7===0)html+='<div class="week-row">';const dayNum=i-firstDow+1;if(dayNum<1||dayNum>daysInMonth){html+=`<div class="day-cell empty"></div>`;}else{const key=dateKey(y,m,dayNum);const total=dayTotal(key);const isToday=key===todayKey;const isSelected=key===selectedDate;html+=`<div class="day-cell${isToday?' today':''}${isSelected?' selected':''}" data-key="${key}" data-day="${dayNum}"><span class="num">${dayNum}</span>${total>0?`<span class="tally">${total}h</span>`:''}</div>`;}if(i%7===6)html+='</div>';}body.innerHTML=html;body.querySelectorAll('.day-cell:not(.empty)').forEach(cell=>{cell.addEventListener('click',()=>{selectedDate=cell.dataset.key;renderCalendar();renderPanel();});});renderSummary();}
+  function renderCalendar(){const y=current.getFullYear(),m=current.getMonth();document.getElementById('monthLabel').textContent=`${MONTHS[m]} ${y}`;const firstDow=new Date(y,m,1).getDay();const daysInMonth=new Date(y,m+1,0).getDate();const body=document.getElementById('calendarBody');body.innerHTML='';let html='';const totalCells=Math.ceil((firstDow+daysInMonth)/7)*7;for(let i=0;i<totalCells;i++){if(i%7===0)html+='<div class="week-row">';const dayNum=i-firstDow+1;if(dayNum<1||dayNum>daysInMonth){html+=`<div class="day-cell empty"></div>`;}else{const key=dateKey(y,m,dayNum);
+     const total=dayTotal(key);
+     const isToday=key===todayKey;
+     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       const isSelected=key===selectedDate;html+=`<div class="day-cell${isToday?' today':''}${isSelected?' selected':''}" data-key="${key}" data-day="${dayNum}"><span class="num">${dayNum}</span>${total>0?`<span class="tally">${total}h</span>`:''}</div>`;}if(i%7===6)html+='</div>';}body.innerHTML=html;body.querySelectorAll('.day-cell:not(.empty)').forEach(cell=>{cell.addEventListener('click',()=>{selectedDate=cell.dataset.key;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     renderCalendar();renderPanel();});});renderSummary();}
 
   function renderSummary(){const y=current.getFullYear(),m=current.getMonth();const prefix=`${y}-${pad(m+1)}-`;let totalHours=0,days=0,entries=0;Object.keys(data).forEach(key=>{if(key.startsWith(prefix)&&data[key].length){days++;entries+=data[key].length;totalHours+=dayTotal(key);}});document.getElementById('sumHours').textContent=`${Math.round(totalHours*100)/100}h`;document.getElementById('sumDays').textContent=days;document.getElementById('sumEntries').textContent=entries;}
 
@@ -394,18 +450,138 @@ document.getElementById("logoutBtn").addEventListener("click",()=>{
 
   function getAllEmployees(){const emps=[];if(currentRoster){for(const[dept,employees]of Object.entries(currentRoster)){employees.forEach(e=>emps.push({name:e.name,dept}));}}return emps;}
 
+async function loadMonthLocks(){
+
+    lockedDates={};
+
+    if(!firebaseReady)return;
+
+    try{
+
+        const snap = await lockRef.get();
+
+        if(snap.exists){
+
+            lockedDates = snap.data() || {};
+
+        }
+
+    }catch(e){
+
+        console.error("Lock loading error:",e);
+
+        lockedDates={};
+
+    }
+
+}
+
+function isDateLocked(date){
+
+    const month = date.substring(0,7);
+
+    return lockedDates[month] === true
+}
   function renderPanel(){
-    const addForm=document.getElementById('addForm'),panelDate=document.getElementById('panelDate'),panelTotal=document.getElementById('panelTotal'),entriesList=document.getElementById('entriesList'),empSelect=document.getElementById('empSelect');
-    if(!selectedDate){panelDate.textContent='Select a date';panelTotal.textContent='';entriesList.innerHTML='';empSelect.innerHTML='';addForm.style.display='none';return;}
-    const[y,m,d]=selectedDate.split('-').map(Number);const dt=new Date(y,m-1,d);panelDate.textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});const list=data[selectedDate]||[];const total=dayTotal(selectedDate);panelTotal.textContent=list.length?`${total}h total`:'';
-    if(list.length===0){entriesList.innerHTML='<div class="empty-note">No overtime logged for this date yet.</div>';}else{entriesList.innerHTML=list.map(e=>`<div class="entry-row"><span class="entry-time">${e.employeeName||'Unknown'}<br><span style="font-weight:400;font-size:12px;color:var(--ink-soft);">${e.shiftLabel||''} &middot; ${fmtTime(e.start)} - ${fmtTime(e.end)}</span></span><span class="entry-hours">${e.hours}h</span><span class="entry-note">${e.note?escapeHtml(e.note):''}</span><button class="entry-del" data-id="${e.id}" aria-label="Delete entry">&times;</button></div>`).join('');entriesList.querySelectorAll('.entry-del').forEach(btn=>{btn.addEventListener('click',async()=>{data[selectedDate]=data[selectedDate].filter(e=>e.id!==btn.dataset.id);if(data[selectedDate].length===0)delete data[selectedDate];await saveData();renderCalendar();renderPanel();});});}
-    const allEmps=getAllEmployees();if(allEmps.length===0){empSelect.innerHTML='<span style="color:var(--ink-soft);font-size:12px;">No employees loaded.</span>';}else{empSelect.innerHTML=allEmps.map(e=>`<button type="button" class="emp-chip${selectedEmployee===e.name?' active':''}" data-name="${e.name}">${e.name} <span style="opacity:0.6;font-size:10px;"></span></button>`).join('');empSelect.querySelectorAll('.emp-chip').forEach(chip=>{chip.addEventListener('click',()=>{selectedEmployee=chip.dataset.name;renderPanel();});});}
-    addForm.style.display='flex';document.getElementById('formMsg').textContent='';selectedShift=null;const shiftBtns=document.querySelectorAll('.shift-btn');shiftBtns.forEach(btn=>{btn.classList.remove('active');btn.onclick=()=>{selectedShift=btn.dataset.shift;shiftBtns.forEach(b=>b.classList.toggle('active',b===btn));};});
+    const addForm=document.getElementById('addForm'),
+          panelDate=document.getElementById('panelDate'),
+          panelTotal=document.getElementById('panelTotal'),
+          entriesList=document.getElementById('entriesList'),
+          empSelect=document.getElementById('empSelect');
+    if(!selectedDate){
+          panelDate.textContent='Select a date';
+          panelTotal.textContent='';
+          entriesList.innerHTML='';
+          empSelect.innerHTML='';
+          addForm.style.display='none';
+      return;
+    }
+    const[y,m,d]=selectedDate.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+        panelDate.textContent=dt.toLocaleDateString('en-US',{
+          weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const list=data[selectedDate]||[];
+ if(isDateLocked(selectedDate) && !isAdmin){
+
+    addForm.style.display='none';
+
+}else{
+
+    addForm.style.display='flex';
+
+}
+    
+    const total=dayTotal(selectedDate);panelTotal.textContent=list.length?`${total}h total`:'';
+    if(list.length===0){
+        entriesList.innerHTML='<div class="empty-note">No overtime logged for this date yet.</div>';
+    }
+    else{
+        entriesList.innerHTML=list.map(e=>`<div class="entry-row"><span class="entry-time">${
+          e.employeeName||'Unknown'}<br><span style="font-weight:400;font-size:12px;color:var(--ink-soft);">${
+          e.shiftLabel||''} &middot; ${fmtTime(e.start)} - ${fmtTime(e.end)}</span></span><span class="entry-hours">${e.hours}h</span><span class="entry-note">${
+          e.note?escapeHtml(e.note):''}</span><button class="entry-del" data-id="${e.id}" aria-label="Delete entry">&times;</button></div>`).join('');
+   entriesList.querySelectorAll('.entry-del').forEach(btn => {
+
+    btn.addEventListener('click', async () => {
+
+
+        // Block non-admin users
+        if (!isAdmin) {
+
+            alert(
+                "Delete permission is only available for Admin.\n\nPlease contact Leo Aude if an entry needs to be removed."
+            );
+            return;
+        }
+        // Admin can delete
+        if (!confirm("Delete this overtime entry?")) return;
+
+
+        data[selectedDate] =
+            data[selectedDate].filter(e => e.id !== btn.dataset.id);
+
+
+        if (data[selectedDate].length === 0) {
+
+            delete data[selectedDate];
+
+        }
+
+
+        await saveData();
+
+        renderCalendar();
+        renderPanel();
+
+    });
+
+});
+        ;}
+    const allEmps=getAllEmployees();
+      if(allEmps.length===0){empSelect.innerHTML='<span style="color:var(--ink-soft);font-size:12px;">No employees loaded.</span>';}
+      else{empSelect.innerHTML=allEmps.map(e=>`<button type="button" class="emp-chip${selectedEmployee===e.name?' active':''}" data-name="${e.name}">${e.name}
+      <span style="opacity:0.6;font-size:10px;"></span></button>`).join('');
+      empSelect.querySelectorAll('.emp-chip').forEach(chip=>{chip.addEventListener('click',()=>{selectedEmployee=chip.dataset.name;renderPanel()
+        ;})
+        ;})
+        ;}
+    addForm.style.display='flex';document.getElementById('formMsg').textContent='';
+    selectedShift=null;const shiftBtns=document.querySelectorAll('.shift-btn');
+    shiftBtns.forEach(btn=>{btn.classList.remove('active');btn.onclick=()=>{selectedShift=btn.dataset.shift;shiftBtns.forEach(b=>b.classList.toggle('active',b===btn));};});
   }
 
   function escapeHtml(s){const div=document.createElement('div');div.textContent=s;return div.innerHTML;}
 
-  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();
+  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;
+                                                                     if(isDateLocked(selectedDate) && !isAdmin){
+
+    document.getElementById('formMsg').textContent =
+    "This month is locked. Overtime entry is not available.";
+
+    return;
+
+}
+                                                                       const note=document.getElementById('noteInput').value.trim();
                                                                        const msg=document.getElementById('formMsg');
                                                                        if(!selectedEmployee){msg.textContent='Select an employee first.';
                                                                                              return;}
@@ -437,6 +613,8 @@ if (halfMonthCount >= 4) {
   document.getElementById('prevBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()-1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
   document.getElementById('nextBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()+1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
 
+
+  
   function parseCsvInput(text){const lines=text.trim().split('\n').filter(l=>l.trim());const roster={};for(const line of lines){const parts=line.split(/[,\t]+/).map(p=>p.trim().toUpperCase());if(parts.length<3)continue;const dept=parts[0],name=parts[1],shifts=parts.slice(2);if(!roster[dept])roster[dept]=[];roster[dept].push({name,shifts});}return Object.keys(roster).length>0?roster:null;}
 
   document.getElementById('previewCsvBtn').addEventListener('click',()=>{const text=document.getElementById('csvInput').value;const msg=document.getElementById('csvMsg');parsedCsvRoster=parseCsvInput(text);if(!parsedCsvRoster){msg.textContent='Could not parse. Format: DEPT, NAME, shift1, shift2, ...';msg.className='form-msg';return;}renderManualEditor(parsedCsvRoster);msg.textContent=`Parsed ${Object.values(parsedCsvRoster).flat().length} employees. Review below, then Save.`;msg.className='form-msg success';});
@@ -445,6 +623,60 @@ if (halfMonthCount >= 4) {
   document.getElementById('saveLocalBtn').addEventListener('click',()=>{if(!parsedCsvRoster){document.getElementById('csvMsg').textContent='Preview first.';return;}saveRosterToLocal(parsedCsvRoster);});
   document.getElementById('clearLocalBtn').addEventListener('click',()=>{localStorage.removeItem(LOCAL_ROSTER_KEY);document.getElementById('csvMsg').textContent='Local roster data cleared.';document.getElementById('csvMsg').className='form-msg success';loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!rosterTab.classList.contains('hidden'))renderRoster();});});
 
+document.getElementById('lockMonthBtn').addEventListener('click', async()=>{
+
+    if(!isAdmin){
+        alert("Admin only");
+        return;
+    }
+
+    const month=document.getElementById('lockDate').value;
+
+    if(!date){
+        alert("Select a date first");
+        return;
+    }
+
+
+    lockedDates[month]=true;
+
+
+    await lockRef.set(lockedDates);
+
+
+    document.getElementById('lockMsg').textContent =
+    `${month} locked successfully`;
+
+});
+
+
+
+document.getElementById('unlockMonthBtn').addEventListener('click', async()=>{
+
+    if(!isAdmin){
+        alert("Admin only");
+        return;
+    }
+
+    const month=document.getElementById('lockDate').value;
+
+    if(!date){
+        alert("Select a date first");
+        return;
+    }
+
+
+    delete lockedDates[month];
+
+
+    await lockRef.set(lockedDates);
+
+
+    document.getElementById('lockMsg').textContent =
+    `${month} unlocked successfully`;
+
+});
+  
   async function saveRosterToFirebase(rosterData){const msg=document.getElementById('csvMsg');if(!firebaseReady){msg.textContent='Firebase not connected. Saving locally...';saveRosterToLocal(rosterData);return;}const year=document.getElementById('csvYear').value;const month=parseInt(document.getElementById('csvMonth').value);const key=rosterKey(year,month);try{await rosterRef.doc(key).set({departments:rosterData,updatedAt:new Date().toISOString()});msg.textContent=`Saved to Firebase for ${MONTHS[month]} ${year}!`;msg.className='form-msg success';currentRoster=rosterData;rosterSource='firebase';updateSourceBadge();}catch(e){msg.textContent='Failed: '+e.message;msg.className='form-msg';}}
 
   function saveRosterToLocal(rosterData){const msg=document.getElementById('csvMsg');const year=document.getElementById('csvYear').value;const month=parseInt(document.getElementById('csvMonth').value);const key=rosterKey(year,month);try{const existing=JSON.parse(localStorage.getItem(LOCAL_ROSTER_KEY)||'{}');existing[key]=rosterData;localStorage.setItem(LOCAL_ROSTER_KEY,JSON.stringify(existing));msg.textContent=`Saved locally for ${MONTHS[month]} ${year}.`;msg.className='form-msg success';currentRoster=rosterData;rosterSource='local';updateSourceBadge();}catch(e){msg.textContent='Failed to save locally.';msg.className='form-msg';}}
@@ -457,7 +689,10 @@ if (halfMonthCount >= 4) {
   function extractFromEditor(){const container=document.getElementById('manualEditor');const table=container.querySelector('table');if(!table)return null;const roster={};table.querySelectorAll('tbody tr').forEach(row=>{const dept=row.dataset.dept;const name=row.dataset.name;if(!roster[dept])roster[dept]=[];const shifts=[];row.querySelectorAll('input[data-day]').forEach(input=>{shifts.push(input.value.trim().toUpperCase()||'');});roster[dept].push({name,shifts});});return roster;}
 
   (function init(){
-    updateAdminUI();
+      updateAdminUI();
+
+    loadMonthLocks();
+
     loadRoster(current.getFullYear(),current.getMonth()).then(()=>{
       listenForChanges(()=>{renderRoster();renderCalendar();renderPanel();});
     });
