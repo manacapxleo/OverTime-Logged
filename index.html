@@ -262,6 +262,37 @@
   }
 
   function dayTotal(key){const list=data[key]||[];return Math.round(list.reduce((sum,e)=>sum+e.hours,0)*100)/100;}
+  function getEmployeeHalfMonthCount(employeeName, dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+
+  const firstHalf = day <= 15;
+
+  let count = 0;
+
+  Object.keys(data).forEach(key => {
+
+    const [y, m, d] = key.split('-').map(Number);
+
+    if (y !== year || m !== month) return;
+
+    if (firstHalf) {
+      if (d > 15) return;
+    } else {
+      if (d <= 15) return;
+    }
+
+    const entries = data[key] || [];
+
+    entries.forEach(entry => {
+      if (entry.employeeName === employeeName) {
+        count++;
+      }
+    });
+
+  });
+
+  return count;
+}
 
  const tabBtns=document.querySelectorAll('.tab-btn'),rosterTab=document.getElementById('rosterTab'),calendarTab=document.getElementById('calendarTab'),adminTab=document.getElementById('adminTab');
   
@@ -325,7 +356,34 @@
 
   function escapeHtml(s){const div=document.createElement('div');div.textContent=s;return div.innerHTML;}
 
-  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();const msg=document.getElementById('formMsg');if(!selectedEmployee){msg.textContent='Select an employee first.';return;}if(!selectedShift){msg.textContent='Choose a shift first.';return;}const shift=SHIFTS[selectedShift];if(!data[selectedDate])data[selectedDate]=[];const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
+  document.getElementById('addBtn').addEventListener('click',async()=>{if(!selectedDate)return;const note=document.getElementById('noteInput').value.trim();
+                                                                       const msg=document.getElementById('formMsg');
+                                                                       if(!selectedEmployee){msg.textContent='Select an employee first.';
+                                                                                             return;}
+                                                                       if(!selectedShift){msg.textContent='Choose a shift first.'
+                                                          ;return;}
+                                                                       const shift=SHIFTS[selectedShift];
+                                                                       const halfMonthCount = getEmployeeHalfMonthCount(
+    selectedEmployee,
+    selectedDate
+);
+
+if (halfMonthCount >= 5) {
+
+    const halfText =
+        parseInt(selectedDate.split('-')[2]) <= 15
+            ? "first"
+            : "second";
+
+    msg.textContent =
+        `${selectedEmployee} already has the maximum of 5 overtime entries for the ${halfText} half of this month.`;
+
+    return;
+}
+                                                                       if(!data[selectedDate])data[selectedDate]=[];
+                                                                       const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);
+                                                                       if(alreadyLogged){msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;
+                                                                                         return;}data[selectedDate].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),employeeName:selectedEmployee,shift:selectedShift,shiftLabel:shift.label,start:shift.start,end:shift.end,hours:shift.hours,note});data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));await saveData();document.getElementById('noteInput').value='';renderCalendar();renderPanel();});
 
   document.getElementById('prevBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()-1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
   document.getElementById('nextBtn').addEventListener('click',()=>{current.setMonth(current.getMonth()+1);loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!calendarTab.classList.contains('hidden'))renderCalendar();else renderRoster();});});
