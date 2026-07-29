@@ -109,6 +109,10 @@
       <button id="nextBtn" aria-label="Next month">&#8250;</button>
     </div>
   </div>
+  <div id="authArea">
+    <button id="loginBtn" class="add-btn">Admin Login</button>
+    <button id="logoutBtn" class="add-btn secondary hidden">Logout</button>
+</div>
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="roster">Shift Roster</button>
     <button class="tab-btn" data-tab="calendar">Overtime Calendar</button>
@@ -212,7 +216,12 @@
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
 
-  let db=null,docRef=null,rosterRef=null,firebaseReady=false;
+  let db=null,
+    docRef=null,
+    rosterRef=null,
+    firebaseReady=false,
+    isAdmin=false;
+  
   try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
 
   const HARDCODED_ROSTERS={
@@ -241,7 +250,46 @@
   function timeToMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
   function fmtTime(t){const[h,m]=t.split(':').map(Number);const period=h>=12?'PM':'AM';let h12=h%12;if(h12===0)h12=12;return`${h12}:${pad(m)} ${period}`;}
   function setStatus(text){const el=document.getElementById('syncStatus');if(el)el.textContent=text;}
+function updateAdminUI(){
 
+    document.getElementById("loginBtn")
+        .classList.toggle("hidden", isAdmin);
+
+    document.getElementById("logoutBtn")
+        .classList.toggle("hidden", !isAdmin);
+
+    document.querySelector('[data-tab="admin"]')
+        .classList.toggle("hidden", !isAdmin);
+
+}
+
+document.getElementById("loginBtn").addEventListener("click",()=>{
+
+    const password=prompt("Enter Admin Password");
+
+    if(password===ADMIN_PASSWORD){
+
+        isAdmin=true;
+
+        updateAdminUI();
+
+        alert("Admin login successful.");
+
+    }else{
+
+        alert("Incorrect password.");
+
+    }
+
+});
+
+document.getElementById("logoutBtn").addEventListener("click",()=>{
+
+    isAdmin=false;
+
+    updateAdminUI();
+
+});
   async function loadRoster(year,month){
     const key=rosterKey(year,month);
     if(firebaseReady&&rosterRef){try{const doc=await rosterRef.doc(key).get();if(doc.exists){currentRoster=doc.data().departments;rosterSource='firebase';updateSourceBadge();return;}}catch(e){console.log('Firebase roster not found');}}
@@ -369,7 +417,7 @@
     selectedDate
 );
 
-if (halfMonthCount >= 5) {
+if (halfMonthCount >= 4) {
 
     const halfText =
         parseInt(selectedDate.split('-')[2]) <= 15
@@ -377,7 +425,7 @@ if (halfMonthCount >= 5) {
             : "second";
 
     msg.textContent =
-        `${selectedEmployee} already has the maximum of 5 overtime entries for the ${halfText} half of this month.`;
+        `${selectedEmployee} already has the maximum of 4 overtime entries for the ${halfText} half of this month.`;
 
     return;
 }
@@ -409,6 +457,7 @@ if (halfMonthCount >= 5) {
   function extractFromEditor(){const container=document.getElementById('manualEditor');const table=container.querySelector('table');if(!table)return null;const roster={};table.querySelectorAll('tbody tr').forEach(row=>{const dept=row.dataset.dept;const name=row.dataset.name;if(!roster[dept])roster[dept]=[];const shifts=[];row.querySelectorAll('input[data-day]').forEach(input=>{shifts.push(input.value.trim().toUpperCase()||'');});roster[dept].push({name,shifts});});return roster;}
 
   (function init(){
+    updateAdminUI();
     loadRoster(current.getFullYear(),current.getMonth()).then(()=>{
       listenForChanges(()=>{renderRoster();renderCalendar();renderPanel();});
     });
