@@ -480,7 +480,8 @@ function isDateLocked(date){
 
     const month = date.substring(0,7);
 
-    return lockedDates[month] === true
+    return lockedDates[month] === true;
+
 }
   function renderPanel(){
     const addForm=document.getElementById('addForm'),
@@ -623,32 +624,33 @@ if (halfMonthCount >= 4) {
   document.getElementById('saveLocalBtn').addEventListener('click',()=>{if(!parsedCsvRoster){document.getElementById('csvMsg').textContent='Preview first.';return;}saveRosterToLocal(parsedCsvRoster);});
   document.getElementById('clearLocalBtn').addEventListener('click',()=>{localStorage.removeItem(LOCAL_ROSTER_KEY);document.getElementById('csvMsg').textContent='Local roster data cleared.';document.getElementById('csvMsg').className='form-msg success';loadRoster(current.getFullYear(),current.getMonth()).then(()=>{if(!rosterTab.classList.contains('hidden'))renderRoster();});});
 
-document.getElementById('lockMonthBtn').addEventListener('click', async()=>{
+document.getElementById('lockMonthBtn').addEventListener('click', async () => {
 
-    if(!isAdmin){
+    if (!isAdmin) {
         alert("Admin only");
         return;
     }
 
-    const month=document.getElementById('lockDate').value;
+    const month = document.getElementById('lockDate').value;
 
-    if(!date){
-        alert("Select a date first");
+    if (!month) {
+        alert("Select a month first");
         return;
     }
 
+    lockedDates[month] = true;
 
-    lockedDates[month]=true;
-
-
-    await lockRef.set(lockedDates);
-
-
-    document.getElementById('lockMsg').textContent =
-    `${month} locked successfully`;
+    try {
+        await lockRef.set(lockedDates);
+        document.getElementById('lockMsg').textContent =
+            `${month} locked successfully`;
+    } catch (e) {
+        console.error(e);
+        document.getElementById('lockMsg').textContent =
+            "Failed to lock month";
+    }
 
 });
-
 
 
 document.getElementById('unlockMonthBtn').addEventListener('click', async()=>{
