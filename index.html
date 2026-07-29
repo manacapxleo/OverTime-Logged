@@ -368,7 +368,7 @@
     selectedDate
 );
 
-if (halfMonthCount >= 5) {
+if (halfMonthCount >= 3) {
 
     const halfText =
         parseInt(selectedDate.split('-')[2]) <= 15
@@ -376,7 +376,7 @@ if (halfMonthCount >= 5) {
             : "second";
 
     msg.textContent =
-        `${selectedEmployee} already has the maximum of 5 overtime entries for the ${halfText} half of this month.`;
+        `${selectedEmployee} already has the maximum of 3 overtime entries for the ${halfText} half of this month.`;
 
     return;
 }
