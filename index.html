@@ -108,10 +108,6 @@
       <div class="month-label" id="monthLabel"></div>
       <button id="nextBtn" aria-label="Next month">&#8250;</button>
     </div>
-    <div id="authArea">
-    <button id="loginBtn" class="add-btn">Admin Login</button>
-    <button id="logoutBtn" class="add-btn secondary hidden">Logout</button>
-    </div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="roster">Shift Roster</button>
@@ -216,30 +212,9 @@
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
 
-  let db=null,
-    auth=null,
-    docRef=null,
-    rosterRef=null,
-    firebaseReady=false;
+  let db=null,docRef=null,rosterRef=null,firebaseReady=false;
+  try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
 
-try{
-    if(firebaseConfig.apiKey && firebaseConfig.apiKey!=="YOUR_API_KEY"){
-
-        firebase.initializeApp(firebaseConfig);
-
-        auth = firebase.auth();          // <-- ADD THIS
-
-        db = firebase.firestore();
-
-        docRef = db.collection('overtime').doc('shared-log');
-
-        rosterRef = db.collection('rosters');
-
-        firebaseReady = true;
-    }
-}catch(e){
-    console.error('Firebase init failed',e);
-}
   const HARDCODED_ROSTERS={
     '2026-07':{
       'PH':[{name:'MAITEM',shifts:['2','2','2','2','RD','RD','1','1','1','1','1','1','1','1','1','1','1','1','1','RD','2','2','2','2','2','2','RD','RD','1','1','1']},{name:'DELIMA',shifts:['RD','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','2','2','2','2','RD','2','RD','RD','1','1','1','1','1','RD','3','3']},{name:'SANCHEZ',shifts:['1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','RD','RD','2']},{name:'BOLANTE',shifts:['3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD']}],
@@ -266,47 +241,6 @@ try{
   function timeToMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
   function fmtTime(t){const[h,m]=t.split(':').map(Number);const period=h>=12?'PM':'AM';let h12=h%12;if(h12===0)h12=12;return`${h12}:${pad(m)} ${period}`;}
   function setStatus(text){const el=document.getElementById('syncStatus');if(el)el.textContent=text;}
-
-  function updateAdminUI(){
-
-    document.getElementById("loginBtn")
-        .classList.toggle("hidden", isAdmin);
-
-    document.getElementById("logoutBtn")
-        .classList.toggle("hidden", !isAdmin);
-
-    document.querySelector('[data-tab="admin"]')
-        .classList.toggle("hidden", !isAdmin);
-
-}
-
-document.getElementById("loginBtn").addEventListener("click",()=>{
-
-    const password=prompt("Enter Admin Password");
-
-    if(password===ADMIN_PASSWORD){
-
-        isAdmin=true;
-
-        updateAdminUI();
-
-        alert("Admin login successful.");
-
-    }else{
-
-        alert("Incorrect password.");
-
-    }
-
-});
-
-document.getElementById("logoutBtn").addEventListener("click",()=>{
-
-    isAdmin=false;
-
-    updateAdminUI();
-
-});
 
   async function loadRoster(year,month){
     const key=rosterKey(year,month);
@@ -367,7 +301,14 @@ document.getElementById("logoutBtn").addEventListener("click",()=>{
     btn.addEventListener('click',()=>{
       const tab=btn.dataset.tab;
       
-    
+      // PASSWORD PROTECTION GATE FOR ADMIN TAB
+      if(tab==='admin') {
+        const passwordCheck = prompt("Enter Admin Password to continue:");
+        if (passwordCheck !== ADMIN_PASSWORD) {
+          alert("Access Denied: Incorrect Password.");
+          return; // Halts configuration and prevents switching tabs
+        }
+      }
 
       tabBtns.forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
@@ -428,7 +369,7 @@ document.getElementById("logoutBtn").addEventListener("click",()=>{
     selectedDate
 );
 
-if (halfMonthCount >= 3) {
+if (halfMonthCount >= 5) {
 
     const halfText =
         parseInt(selectedDate.split('-')[2]) <= 15
@@ -436,7 +377,7 @@ if (halfMonthCount >= 3) {
             : "second";
 
     msg.textContent =
-        `${selectedEmployee} already has the maximum of 3 overtime entries for the ${halfText} half of this month.`;
+        `${selectedEmployee} already has the maximum of 5 overtime entries for the ${halfText} half of this month.`;
 
     return;
 }
@@ -468,7 +409,6 @@ if (halfMonthCount >= 3) {
   function extractFromEditor(){const container=document.getElementById('manualEditor');const table=container.querySelector('table');if(!table)return null;const roster={};table.querySelectorAll('tbody tr').forEach(row=>{const dept=row.dataset.dept;const name=row.dataset.name;if(!roster[dept])roster[dept]=[];const shifts=[];row.querySelectorAll('input[data-day]').forEach(input=>{shifts.push(input.value.trim().toUpperCase()||'');});roster[dept].push({name,shifts});});return roster;}
 
   (function init(){
-    updateAdminUI();
     loadRoster(current.getFullYear(),current.getMonth()).then(()=>{
       listenForChanges(()=>{renderRoster();renderCalendar();renderPanel();});
     });
