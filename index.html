@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root{
     --ink:#1E2A38;--ink-soft:#354758;--paper:#F1EEE4;--paper-raised:#FAF8F2;--paper-line:#DAD5C4;
@@ -215,10 +216,30 @@
     appId:"1:55428287155:web:5a1a3d425fc7d3a118bec6"
   };
 
-  let db=null,docRef=null,rosterRef=null,firebaseReady=false;
-  let isAdmin = false;
-  try{if(firebaseConfig.apiKey&&firebaseConfig.apiKey!=="YOUR_API_KEY"){firebase.initializeApp(firebaseConfig);db=firebase.firestore();docRef=db.collection('overtime').doc('shared-log');rosterRef=db.collection('rosters');firebaseReady=true;}}catch(e){console.error('Firebase init failed',e);}
+  let db=null,
+    auth=null,
+    docRef=null,
+    rosterRef=null,
+    firebaseReady=false;
 
+try{
+    if(firebaseConfig.apiKey && firebaseConfig.apiKey!=="YOUR_API_KEY"){
+
+        firebase.initializeApp(firebaseConfig);
+
+        auth = firebase.auth();          // <-- ADD THIS
+
+        db = firebase.firestore();
+
+        docRef = db.collection('overtime').doc('shared-log');
+
+        rosterRef = db.collection('rosters');
+
+        firebaseReady = true;
+    }
+}catch(e){
+    console.error('Firebase init failed',e);
+}
   const HARDCODED_ROSTERS={
     '2026-07':{
       'PH':[{name:'MAITEM',shifts:['2','2','2','2','RD','RD','1','1','1','1','1','1','1','1','1','1','1','1','1','RD','2','2','2','2','2','2','RD','RD','1','1','1']},{name:'DELIMA',shifts:['RD','1','1','1','1','1','RD','3','3','3','3','3','3','3','RD','2','2','2','2','RD','2','RD','RD','1','1','1','1','1','RD','3','3']},{name:'SANCHEZ',shifts:['1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','3','RD','RD','2']},{name:'BOLANTE',shifts:['3','3','RD','RD','2','2','2','2','2','RD','RD','1','1','1','1','1','RD','3','3','3','3','3','RD','RD','2','2','2','2','2','RD','RD']}],
