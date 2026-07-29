@@ -653,29 +653,31 @@ document.getElementById('lockMonthBtn').addEventListener('click', async () => {
 });
 
 
-document.getElementById('unlockMonthBtn').addEventListener('click', async()=>{
+document.getElementById('unlockMonthBtn').addEventListener('click', async () => {
 
-    if(!isAdmin){
+    if (!isAdmin) {
         alert("Admin only");
         return;
     }
 
-    const month=document.getElementById('lockDate').value;
+    const month = document.getElementById('lockDate').value;
 
-    if(!date){
-        alert("Select a date first");
+    if (!month) {
+        alert("Select a month first");
         return;
     }
 
-
     delete lockedDates[month];
 
-
-    await lockRef.set(lockedDates);
-
-
-    document.getElementById('lockMsg').textContent =
-    `${month} unlocked successfully`;
+    try {
+        await lockRef.set(lockedDates);
+        document.getElementById('lockMsg').textContent =
+            `${month} unlocked successfully`;
+    } catch (e) {
+        console.error(e);
+        document.getElementById('lockMsg').textContent =
+            "Failed to unlock month";
+    }
 
 });
   
