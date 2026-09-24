@@ -953,7 +953,7 @@
         const name=row.dataset.name;
         const day=parseInt(e.target.dataset.day);
         const val=e.target.value.trim().toUpperCase();
-        if(!['1','2','3','RD',''].includes(val)){
+        if(!['1','2','3','RD','VL',''].includes(val)){
           e.target.value='';
           return;
         }
