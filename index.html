@@ -748,55 +748,63 @@ function hasShiftOverlap(existingEntries, employeeName, newStart, newEnd) {
     return div.innerHTML;
   }
 
-  document.getElementById('addBtn').addEventListener('click',async()=>{
-    if(!selectedDate)return;
-    if(isDateLocked(selectedDate) && !isAdmin){
-      document.getElementById('formMsg').textContent = "This month is locked. Overtime entry is not available.";
-      return;
-    }
-    const note=document.getElementById('noteInput').value.trim();
-    const msg=document.getElementById('formMsg');
-    if(!selectedEmployee){
-      msg.textContent='Select an employee first.';
-      return;
-    }
-    if(!selectedShift){
-      msg.textContent='Choose a shift first.';
-      return;
-    }
-    const shift=SHIFTS[selectedShift];
-    const halfMonthCount = getEmployeeHalfMonthCount(selectedEmployee, selectedDate);
+ document.getElementById('addBtn').addEventListener('click', async () => {
+  if (!selectedDate) return;
+  
+  if (isDateLocked(selectedDate) && !isAdmin) {
+    document.getElementById('formMsg').textContent = "This month is locked. Overtime entry is not available.";
+    return;
+  }
+  
+  const note = document.getElementById('noteInput').value.trim();
+  const msg = document.getElementById('formMsg');
+  
+  if (!selectedEmployee) {
+    msg.textContent = 'Select an employee first.';
+    return;
+  }
+  if (!selectedShift) {
+    msg.textContent = 'Choose a shift first.';
+    return;
+  }
 
-    if (halfMonthCount >= 4) {
-      const halfText = parseInt(selectedDate.split('-')[2]) <= 15 ? "first" : "second";
-      msg.textContent = `${selectedEmployee} already has the maximum of 4 overtime entries for the ${halfText} half of this month.`;
-      return;
-    }
+  const shift = SHIFTS[selectedShift];
+  const halfMonthCount = getEmployeeHalfMonthCount(selectedEmployee, selectedDate);
 
-    if(!data[selectedDate])data[selectedDate]=[];
-    const alreadyLogged=data[selectedDate].some(e=>e.employeeName===selectedEmployee&&e.shift===selectedShift);
-    if(alreadyLogged){
-      msg.textContent=`${selectedEmployee} already has ${shift.label} logged.`;
-      return;
-    }
+  if (halfMonthCount >= 4) {
+    const halfText = parseInt(selectedDate.split('-')[2]) <= 15 ? "first" : "second";
+    msg.textContent = `${selectedEmployee} already has the maximum of 4 overtime entries for the ${halfText} half of this month.`;
+    return;
+  }
 
-    data[selectedDate].push({
-      id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      employeeName:selectedEmployee,
-      shift:selectedShift,
-      shiftLabel:shift.label,
-      start:shift.start,
-      end:shift.end,
-      hours:shift.hours,
-      note
-    });
+  if (!data[selectedDate]) data[selectedDate] = [];
+  const existingEntries = data[selectedDate];
 
-    data[selectedDate].sort((a,b)=>timeToMinutes(a.start)-timeToMinutes(b.start));
-    await saveData();
-    document.getElementById('noteInput').value='';
-    renderCalendar();
-    renderPanel();
+  // ** Check for shift overlaps or duplicates using time ranges **
+  if (hasShiftOverlap(existingEntries, selectedEmployee, shift.start, shift.end)) {
+    msg.textContent = `Conflict: ${selectedEmployee} already has an overlapping or duplicate shift during this time!`;
+    return;
+  }
+
+  // Add the new shift entry
+  data[selectedDate].push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    employeeName: selectedEmployee,
+    shift: selectedShift,
+    shiftLabel: shift.label,
+    start: shift.start,
+    end: shift.end,
+    hours: shift.hours,
+    note
   });
+
+  data[selectedDate].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+  await saveData();
+  
+  document.getElementById('noteInput').value = '';
+  renderCalendar();
+  renderPanel();
+});
 
   document.getElementById('prevBtn').addEventListener('click',()=>{
     current.setMonth(current.getMonth()-1);
