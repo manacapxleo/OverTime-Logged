@@ -748,7 +748,7 @@ function hasShiftOverlap(existingEntries, employeeName, newStart, newEnd) {
     return div.innerHTML;
   }
 
- document.getElementById('addBtn').addEventListener('click', async () => {
+document.getElementById('addBtn').addEventListener('click', async () => {
   if (!selectedDate) return;
   
   if (isDateLocked(selectedDate) && !isAdmin) {
@@ -780,9 +780,9 @@ function hasShiftOverlap(existingEntries, employeeName, newStart, newEnd) {
   if (!data[selectedDate]) data[selectedDate] = [];
   const existingEntries = data[selectedDate];
 
-  // ** Check for shift overlaps or duplicates using time ranges **
+  // ** Robust Overlap & Exact Duplicate Check **
   if (hasShiftOverlap(existingEntries, selectedEmployee, shift.start, shift.end)) {
-    msg.textContent = `Conflict: ${selectedEmployee} already has an overlapping or duplicate shift during this time!`;
+    msg.textContent = `Conflict: ${selectedEmployee} already has a shift or overlap scheduled during ${shift.label} (${fmtTime(shift.start)} - ${fmtTime(shift.end)})!`;
     return;
   }
 
