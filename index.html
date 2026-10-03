@@ -778,11 +778,11 @@ document.getElementById('addBtn').addEventListener('click', async () => {
   }
 
   if (!data[selectedDate]) data[selectedDate] = [];
-  const existingEntries = data[selectedDate];
 
-  // ** Robust Overlap & Exact Duplicate Check **
-  if (hasShiftOverlap(existingEntries, selectedEmployee, shift.start, shift.end)) {
-    msg.textContent = `Conflict: ${selectedEmployee} already has a shift or overlap scheduled during ${shift.label} (${fmtTime(shift.start)} - ${fmtTime(shift.end)})!`;
+  // ** Global Shift Check: Ensure the shift isn't already taken by ANY employee on this date **
+  const existingShiftOwner = data[selectedDate].find(e => e.shift === selectedShift);
+  if (existingShiftOwner) {
+    msg.textContent = `Conflict: ${shift.label} has already been taken by ${existingShiftOwner.employeeName} for this date. Each shift can only be assigned once per day.`;
     return;
   }
 
