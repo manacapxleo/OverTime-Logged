@@ -605,6 +605,36 @@
     third:{label:'Third shift',start:'16:00',end:'00:00',hours:8}
   };
 
+	// Convert "HH:MM" to total minutes from midnight
+function timeToMinutes(timeStr, isEndTime = false) {
+  const [h, m] = timeStr.split(':').map(Number);
+  // Treat "00:00" as the end of the day (24:00 / 1440 minutes) if it's an end time
+  if (h === 0 && m === 0 && isEndTime) {
+    return 24 * 60;
+  }
+  return h * 60 + m;
+}
+
+// Check if an employee already has an overlapping shift on the selected date
+function hasShiftOverlap(existingEntries, employeeName, newStart, newEnd) {
+  const newStartMin = timeToMinutes(newStart, false);
+  const newEndMin = timeToMinutes(newEnd, true);
+
+  for (const entry of existingEntries) {
+    // Only check against entries for the same employee
+    if (entry.employeeName === employeeName) {
+      const existingStartMin = timeToMinutes(entry.start, false);
+      const existingEndMin = timeToMinutes(entry.end, true);
+
+      // Standard interval overlap condition
+      if (newStartMin < existingEndMin && existingStartMin < newEndMin) {
+        return true; // Overlap or duplicate found!
+      }
+    }
+  }
+  return false;
+}
+	
   function getAllEmployees(){
     const emps=[];
     if(currentRoster){
@@ -767,6 +797,44 @@
     renderCalendar();
     renderPanel();
   });
+
+	// Example implementation inside your add form submission event listener:
+document.getElementById('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (!selectedDate || !selectedEmployee || !selectedShift) {
+    document.getElementById('formMsg').textContent = 'Please select a date, employee, and shift.';
+    return;
+  }
+
+  const shiftDetails = SHIFTS[selectedShift]; // e.g., {start: '08:00', end: '16:00', hours: 8, ...}
+  const existingEntries = data[selectedDate] || [];
+
+  // ** Check for overlaps or duplicates **
+  if (hasShiftOverlap(existingEntries, selectedEmployee, shiftDetails.start, shiftDetails.end)) {
+    document.getElementById('formMsg').textContent = `Conflict: ${selectedEmployee} already has an overlapping shift during this time!`;
+    return;
+  }
+
+  // If no overlap, proceed to add the entry
+  if (!data[selectedDate]) {
+    data[selectedDate] = [];
+  }
+
+  data[selectedDate].push({
+    id: 'id_' + Date.now(),
+    employeeName: selectedEmployee,
+    shiftLabel: shiftDetails.label,
+    start: shiftDetails.start,
+    end: shiftDetails.end,
+    hours: shiftDetails.hours,
+    note: document.getElementById('noteInput')?.value || ''
+  });
+
+  await saveData();
+  renderCalendar();
+  renderPanel();
+});
 
   document.getElementById('prevBtn').addEventListener('click',()=>{
     current.setMonth(current.getMonth()-1);
