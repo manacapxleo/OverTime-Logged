@@ -798,44 +798,6 @@ function hasShiftOverlap(existingEntries, employeeName, newStart, newEnd) {
     renderPanel();
   });
 
-	// Example implementation inside your add form submission event listener:
-document.getElementById('addForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  if (!selectedDate || !selectedEmployee || !selectedShift) {
-    document.getElementById('formMsg').textContent = 'Please select a date, employee, and shift.';
-    return;
-  }
-
-  const shiftDetails = SHIFTS[selectedShift]; // e.g., {start: '08:00', end: '16:00', hours: 8, ...}
-  const existingEntries = data[selectedDate] || [];
-
-  // ** Check for overlaps or duplicates **
-  if (hasShiftOverlap(existingEntries, selectedEmployee, shiftDetails.start, shiftDetails.end)) {
-    document.getElementById('formMsg').textContent = `Conflict: ${selectedEmployee} already has an overlapping shift during this time!`;
-    return;
-  }
-
-  // If no overlap, proceed to add the entry
-  if (!data[selectedDate]) {
-    data[selectedDate] = [];
-  }
-
-  data[selectedDate].push({
-    id: 'id_' + Date.now(),
-    employeeName: selectedEmployee,
-    shiftLabel: shiftDetails.label,
-    start: shiftDetails.start,
-    end: shiftDetails.end,
-    hours: shiftDetails.hours,
-    note: document.getElementById('noteInput')?.value || ''
-  });
-
-  await saveData();
-  renderCalendar();
-  renderPanel();
-});
-
   document.getElementById('prevBtn').addEventListener('click',()=>{
     current.setMonth(current.getMonth()-1);
     loadRoster(current.getFullYear(),current.getMonth()).then(()=>{
